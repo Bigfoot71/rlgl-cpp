@@ -4,6 +4,7 @@
 #include "./rlRenderBatch.hpp"
 #include "./rlConfig.hpp"
 #include "./rlEnums.hpp"
+#include "./rlGLExt.hpp"
 #include "./rlMath.hpp"
 
 #include <vector>
@@ -18,14 +19,23 @@ namespace rlgl {
 
       public:
         /**
+         * @brief Default constructor for an uninitialized rendering context.
+         *
+         * This constructor creates an uninitialized rendering context.
+         * NOTE: You may need to call an initialization method in the future.
+         */
+        Context() = default;
+
+        /**
          * @brief Initialize the rendering context.
          *
          * This constructor initializes the rendering context with the specified width and height.
          *
          * @param width The width of the rendering context.
          * @param height The height of the rendering context.
+         * @param extLoader A function pointer to a custom loader that loads OpenGL extensions (optional).
          */
-        Context(int width, int height);
+        Context(int width, int height, void *extLoader(const char *) = nullptr);
 
         /**
          * @brief Destructor for the rendering context.

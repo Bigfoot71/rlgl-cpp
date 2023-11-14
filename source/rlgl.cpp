@@ -14,8 +14,14 @@
 
 using namespace rlgl;
 
-Context::Context(int width, int height)
+Context::Context(int width, int height, void *extLoader(const char *))
 {
+    // Load OpenGL extensions automatically if a loader is given
+    if (extLoader != nullptr && !IsExtensionsLoaded())
+    {
+        LoadExtensions(extLoader);
+    }
+
     // Enable OpenGL debug context if required
 #   if defined(RLGL_ENABLE_OPENGL_DEBUG_CONTEXT) && defined(GRAPHICS_API_OPENGL_43)
 
