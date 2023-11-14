@@ -1301,7 +1301,7 @@ namespace rlgl {
          * @param locIndex The location index of the uniform matrix in the shader.
          * @param mat The matrix to set.
          */
-        void SetUniformMatrix(int locIndex, Matrix mat);
+        void SetUniformMatrix(int locIndex, const Matrix& mat);
 
         /**
          * @brief Set a shader uniform sampler variable with a texture ID.
@@ -1496,7 +1496,7 @@ namespace rlgl {
          *
          * @param proj The new custom projection matrix.
          */
-        void SetMatrixProjection(Matrix proj);
+        void SetMatrixProjection(const Matrix& proj);
 
         /**
          * @brief Set a custom modelview matrix.
@@ -1505,7 +1505,7 @@ namespace rlgl {
          *
          * @param view The new custom modelview matrix.
          */
-        void SetMatrixModelview(Matrix view);
+        void SetMatrixModelview(const Matrix& view);
 
         /**
          * @brief Set projection matrices for stereo rendering.
@@ -1515,7 +1515,7 @@ namespace rlgl {
          * @param right The projection matrix for the right eye.
          * @param left The projection matrix for the left eye.
          */
-        void SetMatrixProjectionStereo(Matrix right, Matrix left);
+        void SetMatrixProjectionStereo(const Matrix& right, const Matrix& left);
 
         /**
          * @brief Set view offset matrices for stereo rendering.
@@ -1525,7 +1525,7 @@ namespace rlgl {
          * @param right The view offset matrix for the right eye.
          * @param left The view offset matrix for the left eye.
          */
-        void SetMatrixViewOffsetStereo(Matrix right, Matrix left);
+        void SetMatrixViewOffsetStereo(const Matrix& right, const Matrix& left);
 
         /* Quick and dirty cube/quad buffers load->draw->unloa */
 

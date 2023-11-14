@@ -2527,11 +2527,11 @@ void Context::UnloadShaderProgram(uint32_t id)
 }
 
 // Get shader location uniform
-int Context::GetLocationUniform(uint32_t shaderId, const char *uniformName)
+int Context::GetLocationUniform(uint32_t shaderId, const std::string& uniformName)
 {
     int location = -1;
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    location = glGetUniformLocation(shaderId, uniformName);
+    location = glGetUniformLocation(shaderId, uniformName.c_str());
 
     //if (location == -1) TRACELOG(TraceLogLevel::Warning, "SHADER: [ID %i] Failed to find shader uniform: %s", shaderId, uniformName);
     //else TRACELOG(TraceLogLevel::Info, "SHADER: [ID %i] Shader uniform (%s) set at location: %i", shaderId, uniformName, location);
@@ -2540,11 +2540,11 @@ int Context::GetLocationUniform(uint32_t shaderId, const char *uniformName)
 }
 
 // Get shader location attribute
-int Context::GetLocationAttrib(uint32_t shaderId, const char *attribName)
+int Context::GetLocationAttrib(uint32_t shaderId, const std::string& attribName)
 {
     int location = -1;
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    location = glGetAttribLocation(shaderId, attribName);
+    location = glGetAttribLocation(shaderId, attribName.c_str());
 
     //if (location == -1) TRACELOG(TraceLogLevel::Warning, "SHADER: [ID %i] Failed to find shader attribute: %s", shaderId, attribName);
     //else TRACELOG(TraceLogLevel::Info, "SHADER: [ID %i] Shader attribute (%s) set at location: %i", shaderId, attribName, location);
@@ -2588,7 +2588,7 @@ void Context::SetVertexAttributeDefault(int locIndex, const void *value, ShaderA
 }
 
 // Set shader value uniform matrix
-void Context::SetUniformMatrix(int locIndex, Matrix mat)
+void Context::SetUniformMatrix(int locIndex, const Matrix& mat)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     float matfloat[16] = {
@@ -2873,7 +2873,7 @@ Matrix Context::GetMatrixViewOffsetStereo(int eye)
 }
 
 // Set a custom modelview matrix (replaces internal modelview matrix)
-void Context::SetMatrixModelview(Matrix view)
+void Context::SetMatrixModelview(const Matrix& view)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     State.modelview = view;
@@ -2881,7 +2881,7 @@ void Context::SetMatrixModelview(Matrix view)
 }
 
 // Set a custom projection matrix (replaces internal projection matrix)
-void Context::SetMatrixProjection(Matrix projection)
+void Context::SetMatrixProjection(const Matrix& projection)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     State.projection = projection;
@@ -2889,7 +2889,7 @@ void Context::SetMatrixProjection(Matrix projection)
 }
 
 // Set eyes projection matrices for stereo rendering
-void Context::SetMatrixProjectionStereo(Matrix right, Matrix left)
+void Context::SetMatrixProjectionStereo(const Matrix& right, const Matrix& left)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     State.projectionStereo[0] = right;
@@ -2898,7 +2898,7 @@ void Context::SetMatrixProjectionStereo(Matrix right, Matrix left)
 }
 
 // Set eyes view offsets matrices for stereo rendering
-void Context::SetMatrixViewOffsetStereo(Matrix right, Matrix left)
+void Context::SetMatrixViewOffsetStereo(const Matrix& right, const Matrix& left)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     State.viewOffsetStereo[0] = right;
