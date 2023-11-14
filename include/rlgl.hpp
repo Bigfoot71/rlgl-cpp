@@ -1267,7 +1267,7 @@ namespace rlgl {
          *
          * @return The location of the uniform variable or -1 if not found.
          */
-        int GetLocationUniform(uint32_t shaderId, const char *uniformName);
+        int GetLocationUniform(uint32_t shaderId, const std::string& uniformName);
 
         /**
          * @brief Get the location of an attribute variable in a shader program.
@@ -1279,7 +1279,7 @@ namespace rlgl {
          *
          * @return The location of the attribute variable or -1 if not found.
          */
-        int GetLocationAttrib(uint32_t shaderId, const char *attribName);
+        int GetLocationAttrib(uint32_t shaderId, const std::string& attribName);
 
         /**
          * @brief Set a shader uniform variable with a specific value.
