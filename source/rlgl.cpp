@@ -2432,7 +2432,7 @@ uint32_t Context::CompileShader(const char *shaderCode, int type)
         if (maxLength > 0)
         {
             int length = 0;
-            std::string log(0, maxLength);
+            std::string log(maxLength, ' ');
             glGetShaderInfoLog(shader, maxLength, &length, log.data());
             TRACELOG(TraceLogLevel::Warning, "SHADER: [ID %i] Compile error: %s", shader, log.c_str());
         }
@@ -2493,7 +2493,7 @@ uint32_t Context::LoadShaderProgram(uint32_t vShaderId, uint32_t fShaderId)
         if (maxLength > 0)
         {
             int length = 0;
-            std::string log(0, maxLength);
+            std::string log(maxLength, ' ');
             glGetProgramInfoLog(program, maxLength, &length, log.data());
             TRACELOG(TraceLogLevel::Warning, "SHADER: [ID %i] Link error: %s", program, log.c_str());
         }
@@ -2659,7 +2659,7 @@ uint32_t Context::LoadComputeShaderProgram(uint32_t shaderId)
         if (maxLength > 0)
         {
             int length = 0;
-            std::string log(0, maxLength);
+            std::string log(maxLength, ' ');
             glGetProgramInfoLog(program, maxLength, &length, log.data());
             TRACELOG(TraceLogLevel::Warning, "SHADER: [ID %i] Link error: %s", program, log.c_str());
         }
