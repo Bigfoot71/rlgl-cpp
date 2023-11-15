@@ -1581,8 +1581,7 @@ uint32_t Context::LoadTexture(const void *data, int width, int height, PixelForm
     int mipOffset = 0;          // Mipmap data offset, only used for tracelog
 
     // NOTE: Added pointer math separately from function to avoid UBSAN complaining
-    uint8_t *dataPtr = nullptr;
-    if (data != nullptr) dataPtr = (uint8_t *)data;
+    const uint8_t *dataPtr = reinterpret_cast<const uint8_t*>(data);
 
     // Load the different mipmap levels
     for (int i = 0; i < mipmapCount; i++)
@@ -1780,8 +1779,8 @@ uint32_t Context::LoadTextureCubemap(const void *data, int size, PixelFormat for
                 }
                 else
                 {
-                    if (format < PixelFormat::DXT1_RGB) glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, glInternalFormat, size, size, 0, glFormat, glType, (uint8_t *)data + i*dataSize);
-                    else glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, glInternalFormat, size, size, 0, dataSize, (uint8_t *)data + i*dataSize);
+                    if (format < PixelFormat::DXT1_RGB) glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, glInternalFormat, size, size, 0, glFormat, glType, reinterpret_cast<const uint8_t*>(data) + i*dataSize);
+                    else glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, glInternalFormat, size, size, 0, dataSize, reinterpret_cast<const uint8_t*>(data) + i*dataSize);
                 }
 
 #           if defined(GRAPHICS_API_OPENGL_33)
@@ -2221,10 +2220,10 @@ void Context::DrawVertexArray(int offset, int count)
 void Context::DrawVertexArrayElements(int offset, int count, const void *buffer)
 {
     // NOTE: Added pointer math separately from function to avoid UBSAN complaining
-    uint16_t *bufferPtr = (uint16_t *)buffer;
+    const uint16_t *bufferPtr = reinterpret_cast<const uint16_t*>(buffer);
     if (offset > 0) bufferPtr += offset;
 
-    glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, (const uint16_t *)bufferPtr);
+    glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, bufferPtr);
 }
 
 // Draw vertex array instanced
@@ -2240,10 +2239,10 @@ void Context::DrawVertexArrayElementsInstanced(int offset, int count, const void
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     // NOTE: Added pointer math separately from function to avoid UBSAN complaining
-    uint16_t *bufferPtr = (uint16_t *)buffer;
+    const uint16_t *bufferPtr = reinterpret_cast<const uint16_t*>(buffer);
     if (offset > 0) bufferPtr += offset;
 
-    glDrawElementsInstanced(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, (const uint16_t *)bufferPtr, instances);
+    glDrawElementsInstanced(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, bufferPtr, instances);
 #endif
 }
 
@@ -2932,9 +2931,9 @@ void Context::LoadDrawQuad()
 
     // Bind vertex attributes (position, texcoords)
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void *)0); // Positions
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0); // Positions
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void *)(3*sizeof(float))); // Texcoords
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), reinterpret_cast<const void*>(3*sizeof(float))); // Texcoords
 
     // Draw quad
     glBindVertexArray(quadVAO);
@@ -3006,11 +3005,11 @@ void Context::LoadDrawCube()
     // Bind vertex attributes (position, normals, texcoords)
     glBindVertexArray(cubeVAO);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)0); // Positions
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0); // Positions
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(3*sizeof(float))); // Normals
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), reinterpret_cast<const void*>(3*sizeof(float))); // Normals
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(6*sizeof(float))); // Texcoords
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), reinterpret_cast<const void*>(6*sizeof(float))); // Texcoords
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
