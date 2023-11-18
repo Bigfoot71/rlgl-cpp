@@ -139,36 +139,36 @@ namespace rlgl {
         Compute                 = 0x91B9    ///< GL_COMPUTE_SHADER
     };
 
-    enum class ShaderLocationIndex : uint8_t
+    enum ShaderLocationIndex : uint8_t
     {
-        VertexPosition          = 0,        ///< Shader location: vertex attribute: position
-        VertexTexCoord01        = 1,        ///< Shader location: vertex attribute: texcoord01
-        VertexTexCoord02        = 2,        ///< Shader location: vertex attribute: texcoord02
-        VertexNormal            = 3,        ///< Shader location: vertex attribute: normal
-        VertexTangent           = 4,        ///< Shader location: vertex attribute: tangent
-        VertexColor             = 5,        ///< Shader location: vertex attribute: color
-        MatrixMVP               = 6,        ///< Shader location: matrix uniform: model-view-projection
-        MatrixView              = 7,        ///< Shader location: matrix uniform: view (camera transform)
-        MatrixProjection        = 8,        ///< Shader location: matrix uniform: projection
-        MatrixModel             = 9,        ///< Shader location: matrix uniform: model (transform)
-        MatrixNormal            = 10,       ///< Shader location: matrix uniform: normal
-        VectorView              = 11,       ///< Shader location: vector uniform: view
-        ColorDiffuse            = 12,       ///< Shader location: vector uniform: diffuse color
-        ColorSpecular           = 13,       ///< Shader location: vector uniform: specular color
-        ColorAmbient            = 14,       ///< Shader location: vector uniform: ambient color
-        MapAlbedo               = 15,       ///< Shader location: sampler2d texture: albedo (same as: MapDiffuse)
-        MapDiffuse              = 15,       ///< Shader location: sampler2d texture: diffuse (same as: MapAlbedo)
-        MapMetalness            = 16,       ///< Shader location: sampler2d texture: metalness (same as: MapSpecular)
-        MapSpecular             = 16,       ///< Shader location: sampler2d texture: specular (same as: MapMetalness)
-        MapNormal               = 17,       ///< Shader location: sampler2d texture: normal
-        MapRoughness            = 18,       ///< Shader location: sampler2d texture: roughness
-        MapOcclusion            = 19,       ///< Shader location: sampler2d texture: occlusion
-        MapEmission             = 20,       ///< Shader location: sampler2d texture: emission
-        MapHeight               = 21,       ///< Shader location: sampler2d texture: height
-        MapCubemap              = 22,       ///< Shader location: samplerCube texture: cubemap
-        MapIrradiance           = 23,       ///< Shader location: samplerCube texture: irradiance
-        MapPrefilter            = 24,       ///< Shader location: samplerCube texture: prefilter
-        MapBRDF                 = 25        ///< Shader location: sampler2d texture: brdf
+        LocVertexPosition       = 0,        ///< Shader location: vertex attribute: position
+        LocVertexTexCoord01     = 1,        ///< Shader location: vertex attribute: texcoord01
+        LocVertexTexCoord02     = 2,        ///< Shader location: vertex attribute: texcoord02
+        LocVertexNormal         = 3,        ///< Shader location: vertex attribute: normal
+        LocVertexTangent        = 4,        ///< Shader location: vertex attribute: tangent
+        LocVertexColor          = 5,        ///< Shader location: vertex attribute: color
+        LocMatrixMVP            = 6,        ///< Shader location: matrix uniform: model-view-projection
+        LocMatrixView           = 7,        ///< Shader location: matrix uniform: view (camera transform)
+        LocMatrixProjection     = 8,        ///< Shader location: matrix uniform: projection
+        LocMatrixModel          = 9,        ///< Shader location: matrix uniform: model (transform)
+        LocMatrixNormal         = 10,       ///< Shader location: matrix uniform: normal
+        LocVectorView           = 11,       ///< Shader location: vector uniform: view
+        LocColorDiffuse         = 12,       ///< Shader location: vector uniform: diffuse color
+        LocColorSpecular        = 13,       ///< Shader location: vector uniform: specular color
+        LocColorAmbient         = 14,       ///< Shader location: vector uniform: ambient color
+        LocMapAlbedo            = 15,       ///< Shader location: sampler2d texture: albedo (same as: MapDiffuse)
+        LocMapDiffuse           = 15,       ///< Shader location: sampler2d texture: diffuse (same as: MapAlbedo)
+        LocMapMetalness         = 16,       ///< Shader location: sampler2d texture: metalness (same as: MapSpecular)
+        LocMapSpecular          = 16,       ///< Shader location: sampler2d texture: specular (same as: MapMetalness)
+        LocMapNormal            = 17,       ///< Shader location: sampler2d texture: normal
+        LocMapRoughness         = 18,       ///< Shader location: sampler2d texture: roughness
+        LocMapOcclusion         = 19,       ///< Shader location: sampler2d texture: occlusion
+        LocMapEmission          = 20,       ///< Shader location: sampler2d texture: emission
+        LocMapHeight            = 21,       ///< Shader location: sampler2d texture: height
+        LocMapCubemap           = 22,       ///< Shader location: samplerCube texture: cubemap
+        LocMapIrradiance        = 23,       ///< Shader location: samplerCube texture: irradiance
+        LocMapPrefilter         = 24,       ///< Shader location: samplerCube texture: prefilter
+        LocMapBRDF              = 25        ///< Shader location: sampler2d texture: brdf
     };
 
     enum class ShaderUniformType
@@ -207,7 +207,8 @@ namespace rlgl {
         Stencil                 = 200,      ///< Framebuffer attachment type: stencil
     } ;
 
-    typedef enum {
+    enum class FramebufferAttachTextureType
+    {
         CubemapPositiveX        = 0,        ///< Framebuffer texture attachment type: cubemap, +X side
         CubemapNegativeX        = 1,        ///< Framebuffer texture attachment type: cubemap, -X side
         CubemapPositiveY        = 2,        ///< Framebuffer texture attachment type: cubemap, +Y side
@@ -216,7 +217,7 @@ namespace rlgl {
         CubemapNegativeZ        = 5,        ///< Framebuffer texture attachment type: cubemap, -Z side
         Texture2D               = 100,      ///< Framebuffer texture attachment type: texture2d
         RenderBuffer            = 200,      ///< Framebuffer texture attachment type: renderbuffer
-    } FramebufferAttachTextureType;
+    };
 
     enum class CullMode
     {

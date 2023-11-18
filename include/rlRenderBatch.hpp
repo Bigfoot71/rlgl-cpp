@@ -44,6 +44,16 @@ namespace rlgl {
         RenderBatch(RenderBatch&& other) noexcept;
         RenderBatch& operator=(RenderBatch&& other) noexcept;
 
+        inline VertexBuffer* GetCurrentBuffer()
+        {
+            return &vertexBuffer[currentBuffer];
+        }
+
+        inline DrawCall* GetLastDrawCall()
+        {
+            return &draws[drawCounter - 1];
+        }
+
       private:
         void Draw(class Context* rlCtx);
 

@@ -38,22 +38,22 @@ RenderBatch::RenderBatch(const Context* rlCtx, int numBuffers, int bufferElement
         glGenBuffers(1, &vertexBuffer[i].vboId[0]);
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[i].vboId[0]);
         glBufferData(GL_ARRAY_BUFFER, bufferElements*3*4*sizeof(float), vertexBuffer[i].vertices, GL_DYNAMIC_DRAW);
-        glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexPosition)]);
-        glVertexAttribPointer(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexPosition)], 3, GL_FLOAT, 0, 0, 0);
+        glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[LocVertexPosition]);
+        glVertexAttribPointer(rlCtx->State.currentShaderLocs[LocVertexPosition], 3, GL_FLOAT, 0, 0, 0);
 
         // Vertex texcoord buffer (shader-location = 1)
         glGenBuffers(1, &vertexBuffer[i].vboId[1]);
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[i].vboId[1]);
         glBufferData(GL_ARRAY_BUFFER, bufferElements*2*4*sizeof(float), vertexBuffer[i].texcoords, GL_DYNAMIC_DRAW);
-        glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexTexCoord01)]);
-        glVertexAttribPointer(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexTexCoord01)], 2, GL_FLOAT, 0, 0, 0);
+        glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[LocVertexTexCoord01]);
+        glVertexAttribPointer(rlCtx->State.currentShaderLocs[LocVertexTexCoord01], 2, GL_FLOAT, 0, 0, 0);
 
         // Vertex color buffer (shader-location = 3)
         glGenBuffers(1, &vertexBuffer[i].vboId[2]);
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[i].vboId[2]);
         glBufferData(GL_ARRAY_BUFFER, bufferElements*4*4*sizeof(unsigned char), vertexBuffer[i].colors, GL_DYNAMIC_DRAW);
-        glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexColor)]);
-        glVertexAttribPointer(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexColor)], 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);
+        glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[LocVertexColor]);
+        glVertexAttribPointer(rlCtx->State.currentShaderLocs[LocVertexColor], 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);
 
         // Fill index buffer
         glGenBuffers(1, &vertexBuffer[i].vboId[3]);
@@ -139,6 +139,8 @@ RenderBatch& RenderBatch::operator=(RenderBatch&& other) noexcept
 void RenderBatch::Draw(Context* rlCtx)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
+    const VertexBuffer &curBuffer = vertexBuffer[currentBuffer];
+
     // Update batch vertex buffers
     //------------------------------------------------------------------------------------------------------------
     // NOTE: If there is not vertex data, buffers doesn't need to be updated (vertexCount > 0)
@@ -146,37 +148,19 @@ void RenderBatch::Draw(Context* rlCtx)
     if (rlCtx->State.vertexCounter > 0)
     {
         // Activate elements VAO
-        if (GetExtensions().vao) glBindVertexArray(vertexBuffer[currentBuffer].vaoId);
+        if (GetExtensions().vao) glBindVertexArray(curBuffer.vaoId);
 
         // Vertex positions buffer
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[currentBuffer].vboId[0]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, rlCtx->State.vertexCounter*3*sizeof(float), vertexBuffer[currentBuffer].vertices);
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(float)*3*4*vertexBuffer[currentBuffer].elementCount, vertexBuffer[currentBuffer].vertices, GL_DYNAMIC_DRAW);  // Update all buffer
+        glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[0]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, rlCtx->State.vertexCounter*3*sizeof(float), curBuffer.vertices);
 
         // Texture coordinates buffer
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[currentBuffer].vboId[1]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, rlCtx->State.vertexCounter*2*sizeof(float), vertexBuffer[currentBuffer].texcoords);
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(float)*2*4*vertexBuffer[currentBuffer].elementCount, vertexBuffer[currentBuffer].texcoords, GL_DYNAMIC_DRAW); // Update all buffer
+        glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[1]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, rlCtx->State.vertexCounter*2*sizeof(float), curBuffer.texcoords);
 
         // Colors buffer
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[currentBuffer].vboId[2]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, rlCtx->State.vertexCounter*4*sizeof(unsigned char), vertexBuffer[currentBuffer].colors);
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(float)*4*4*vertexBuffer[currentBuffer].elementCount, vertexBuffer[currentBuffer].colors, GL_DYNAMIC_DRAW);    // Update all buffer
-
-        // NOTE: glMapBuffer() causes sync issue.
-        // If GPU is working with this buffer, glMapBuffer() will wait(stall) until GPU to finish its job.
-        // To avoid waiting (idle), you can call first glBufferData() with NULL pointer before glMapBuffer().
-        // If you do that, the previous data in PBO will be discarded and glMapBuffer() returns a new
-        // allocated pointer immediately even if GPU is still working with the previous data.
-
-        // Another option: map the buffer object into client's memory
-        // Probably this code could be moved somewhere else...
-        // vertexBuffer[currentBuffer].vertices = (float *)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE);
-        // if (vertexBuffer[currentBuffer].vertices)
-        // {
-            // Update vertex data
-        // }
-        // glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[2]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, rlCtx->State.vertexCounter*4*sizeof(unsigned char), curBuffer.colors);
 
         // Unbind the current VAO
         if (GetExtensions().vao) glBindVertexArray(0);
@@ -207,44 +191,36 @@ void RenderBatch::Draw(Context* rlCtx)
             glUseProgram(rlCtx->State.currentShaderId);
 
             // Create modelview-projection matrix and upload to shader
-            Matrix matMVP = rlCtx->State.modelview * rlCtx->State.projection;
-
-            float matMVPfloat[16] = {
-                matMVP.m0, matMVP.m1, matMVP.m2, matMVP.m3,
-                matMVP.m4, matMVP.m5, matMVP.m6, matMVP.m7,
-                matMVP.m8, matMVP.m9, matMVP.m10, matMVP.m11,
-                matMVP.m12, matMVP.m13, matMVP.m14, matMVP.m15
-            };
-
-            glUniformMatrix4fv(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::MatrixMVP)], 1, false, matMVPfloat);
+            glUniformMatrix4fv(rlCtx->State.currentShaderLocs[LocMatrixMVP], 1, false,
+                (rlCtx->State.modelview * rlCtx->State.projection).m); // MVP
 
             if (GetExtensions().vao)
             {
-                glBindVertexArray(vertexBuffer[currentBuffer].vaoId);
+                glBindVertexArray(curBuffer.vaoId);
             }
             else
             {
                 // Bind vertex attrib: position (shader-location = 0)
-                glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[currentBuffer].vboId[0]);
-                glVertexAttribPointer(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexPosition)], 3, GL_FLOAT, 0, 0, 0);
-                glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexPosition)]);
+                glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[0]);
+                glVertexAttribPointer(rlCtx->State.currentShaderLocs[LocVertexPosition], 3, GL_FLOAT, 0, 0, 0);
+                glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[LocVertexPosition]);
 
                 // Bind vertex attrib: texcoord (shader-location = 1)
-                glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[currentBuffer].vboId[1]);
-                glVertexAttribPointer(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexTexCoord01)], 2, GL_FLOAT, 0, 0, 0);
-                glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexTexCoord01)]);
+                glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[1]);
+                glVertexAttribPointer(rlCtx->State.currentShaderLocs[LocVertexTexCoord01], 2, GL_FLOAT, 0, 0, 0);
+                glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[LocVertexTexCoord01]);
 
                 // Bind vertex attrib: color (shader-location = 3)
-                glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[currentBuffer].vboId[2]);
-                glVertexAttribPointer(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexColor)], 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);
-                glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::VertexColor)]);
+                glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[2]);
+                glVertexAttribPointer(rlCtx->State.currentShaderLocs[LocVertexColor], 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);
+                glEnableVertexAttribArray(rlCtx->State.currentShaderLocs[LocVertexColor]);
 
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexBuffer[currentBuffer].vboId[3]);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, curBuffer.vboId[3]);
             }
 
             // Setup some default shader values
-            glUniform4f(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::ColorDiffuse)], 1.0f, 1.0f, 1.0f, 1.0f);
-            glUniform1i(rlCtx->State.currentShaderLocs[static_cast<int>(ShaderLocationIndex::MapDiffuse)], 0);  // Active default sampler2D: texture0
+            glUniform4f(rlCtx->State.currentShaderLocs[LocColorDiffuse], 1.0f, 1.0f, 1.0f, 1.0f);
+            glUniform1i(rlCtx->State.currentShaderLocs[LocMapDiffuse], 0);  // Active default sampler2D: texture0
 
             // Activate additional sampler textures
             // Those additional textures will be common for all draw calls of the batch
@@ -276,11 +252,13 @@ void RenderBatch::Draw(Context* rlCtx)
                         // We need to define the number of indices to be processed: elementCount*6
                         // NOTE: The final parameter tells the GPU the offset in bytes from the
                         // start of the index buffer to the location of the first index to process
-                        glDrawElements(GL_TRIANGLES, draws[i].vertexCount/4*6, GL_UNSIGNED_INT, (GLvoid *)(vertexOffset/4*6*sizeof(GLuint)));
+                        glDrawElements(GL_TRIANGLES, draws[i].vertexCount/4*6, GL_UNSIGNED_INT,
+                            reinterpret_cast<const void*>(vertexOffset/4*6*sizeof(GLuint)));
 #                   endif
 
 #                   if defined(GRAPHICS_API_OPENGL_ES2)
-                        glDrawElements(GL_TRIANGLES, draws[i].vertexCount/4*6, GL_UNSIGNED_SHORT, (GLvoid *)(vertexOffset/4*6*sizeof(GLushort)));
+                        glDrawElements(GL_TRIANGLES, draws[i].vertexCount/4*6, GL_UNSIGNED_SHORT,
+                            reinterpret_cast<const void*>(vertexOffset/4*6*sizeof(GLushort)));
 #                   endif
                 }
 
