@@ -16,65 +16,21 @@ RenderBatch::RenderBatch(const Context& rlCtx, int numBuffers, int bufferElement
     const Context::State &rlState = rlCtx.GetState();
 
     // Initialize CPU (RAM) vertex buffers (position, texcoord, color data and indexes)
+    // And upload to GPU (VRAM) vertex data and initialize VAOs/VBOs
     //--------------------------------------------------------------------------------------------
     vertexBuffer = new VertexBuffer[numBuffers];
-    TRACELOG(TraceLogLevel::Info, "RLGL: Render batch vertex buffers loaded successfully in RAM (CPU)");
-    //--------------------------------------------------------------------------------------------
 
-    // Upload to GPU (VRAM) vertex data and initialize VAOs/VBOs
-    //--------------------------------------------------------------------------------------------
     for (int i = 0; i < numBuffers; i++)
     {
-        // Create vertex buffer
-        vertexBuffer[i] = VertexBuffer(bufferElements);
-
-        if (GetExtensions().vao)
-        {
-            // Initialize Quads VAO
-            glGenVertexArrays(1, &vertexBuffer[i].vaoId);
-            glBindVertexArray(vertexBuffer[i].vaoId);
-        }
-
-        // Quads - Vertex buffers binding and attributes enable
-        // Vertex position buffer (shader-location = 0)
-        glGenBuffers(1, &vertexBuffer[i].vboId[0]);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[i].vboId[0]);
-        glBufferData(GL_ARRAY_BUFFER, bufferElements*3*4*sizeof(float), vertexBuffer[i].vertices, GL_DYNAMIC_DRAW);
-        glEnableVertexAttribArray(rlState.currentShaderLocs[LocVertexPosition]);
-        glVertexAttribPointer(rlState.currentShaderLocs[LocVertexPosition], 3, GL_FLOAT, 0, 0, 0);
-
-        // Vertex texcoord buffer (shader-location = 1)
-        glGenBuffers(1, &vertexBuffer[i].vboId[1]);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[i].vboId[1]);
-        glBufferData(GL_ARRAY_BUFFER, bufferElements*2*4*sizeof(float), vertexBuffer[i].texcoords, GL_DYNAMIC_DRAW);
-        glEnableVertexAttribArray(rlState.currentShaderLocs[LocVertexTexCoord01]);
-        glVertexAttribPointer(rlState.currentShaderLocs[LocVertexTexCoord01], 2, GL_FLOAT, 0, 0, 0);
-
-        // Vertex color buffer (shader-location = 3)
-        glGenBuffers(1, &vertexBuffer[i].vboId[2]);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer[i].vboId[2]);
-        glBufferData(GL_ARRAY_BUFFER, bufferElements*4*4*sizeof(unsigned char), vertexBuffer[i].colors, GL_DYNAMIC_DRAW);
-        glEnableVertexAttribArray(rlState.currentShaderLocs[LocVertexColor]);
-        glVertexAttribPointer(rlState.currentShaderLocs[LocVertexColor], 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);
-
-        // Fill index buffer
-        glGenBuffers(1, &vertexBuffer[i].vboId[3]);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexBuffer[i].vboId[3]);
-
-#       if defined(GRAPHICS_API_OPENGL_33)
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferElements*6*sizeof(int), vertexBuffer[i].indices, GL_STATIC_DRAW);
-#       endif
-
-#       if defined(GRAPHICS_API_OPENGL_ES2)
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferElements*6*sizeof(short), vertexBuffer[i].indices, GL_STATIC_DRAW);
-#       endif
+        vertexBuffer[i] = VertexBuffer(rlState.currentShaderLocs, bufferElements);
     }
 
-    TRACELOG(TraceLogLevel::Info, "RLGL: Render batch vertex buffers loaded successfully in VRAM (GPU)");
+    TRACELOG(TraceLogLevel::Info, "RLGL: Vertex buffers loaded successfully in RAM (CPU) and VRAM (GPU).");
 
     // Unbind the current VAO
     if (GetExtensions().vao) glBindVertexArray(0);
     //--------------------------------------------------------------------------------------------
+
 
     // Init draw calls tracking system
     //--------------------------------------------------------------------------------------------

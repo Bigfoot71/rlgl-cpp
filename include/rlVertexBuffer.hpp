@@ -9,26 +9,26 @@ namespace rlgl {
 
     struct VertexBuffer
     {
-        int elementCount;               ///< Number of elements in the buffer (QUADS)
+        int elementCount        = 0;        ///< Number of elements in the buffer (QUADS)
 
-        float *vertices;                ///< Vertex position (XYZ - 3 components per vertex) (shader-location = 0)
-        float *texcoords;               ///< Vertex texture coordinates (UV - 2 components per vertex) (shader-location = 1)
-        unsigned char *colors;          ///< Vertex colors (RGBA - 4 components per vertex) (shader-location = 3)
+        float *vertices         = nullptr;  ///< Vertex position (XYZ - 3 components per vertex) (shader-location = 0)
+        float *texcoords        = nullptr;  ///< Vertex texture coordinates (UV - 2 components per vertex) (shader-location = 1)
+        unsigned char *colors   = nullptr;  ///< Vertex colors (RGBA - 4 components per vertex) (shader-location = 3)
 
 #       if defined(GRAPHICS_API_OPENGL_11) || defined(GRAPHICS_API_OPENGL_33)
-            uint32_t *indices;          ///< Vertex indices (in case vertex data comes indexed) (6 indices per quad)
+            uint32_t *indices   = nullptr;  ///< Vertex indices (in case vertex data comes indexed) (6 indices per quad)
 #       endif
 
 #       if defined(GRAPHICS_API_OPENGL_ES2)
-            uint16_t *indices;          ///< Vertex indices (in case vertex data comes indexed) (6 indices per quad)
+            uint16_t *indices   = nullptr;  ///< Vertex indices (in case vertex data comes indexed) (6 indices per quad)
 #       endif
 
-        uint32_t vaoId;                 ///< OpenGL Vertex Array Object id
-        uint32_t vboId[4];              ///< OpenGL Vertex Buffer Objects id (4 types of vertex data)
+        uint32_t vaoId = 0;                 ///< OpenGL Vertex Array Object id
+        uint32_t vboId[4]{};                ///< OpenGL Vertex Buffer Objects id (4 types of vertex data)
 
-        VertexBuffer();
+        VertexBuffer() = default;
 
-        VertexBuffer(int bufferElements);
+        VertexBuffer(const int* shaderLocs, int bufferElements);
         ~VertexBuffer();
 
         VertexBuffer(const VertexBuffer&) = delete;
