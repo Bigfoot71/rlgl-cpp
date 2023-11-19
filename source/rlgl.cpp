@@ -43,11 +43,11 @@ Context::Context(int width, int height, void *extLoader(const char *))
 
         // Init default white texture
         constexpr uint8_t pixels[4] = { 255, 255, 255, 255 };   // 1 pixel RGBA (4 bytes)
-        State.defaultTextureId = LoadTexture(pixels, 1, 1, PixelFormat::R8G8B8A8, 1);
+        state.defaultTextureId = LoadTexture(pixels, 1, 1, PixelFormat::R8G8B8A8, 1);
 
-        if (State.defaultTextureId != 0)
+        if (state.defaultTextureId != 0)
         {
-            TRACELOG(TraceLogLevel::Info, "TEXTURE: [ID %i] Default texture loaded successfully", State.defaultTextureId);
+            TRACELOG(TraceLogLevel::Info, "TEXTURE: [ID %i] Default texture loaded successfully", state.defaultTextureId);
         }
         else
         {
@@ -55,26 +55,26 @@ Context::Context(int width, int height, void *extLoader(const char *))
         }
 
         // Init default Shader (customized for GL 3.3 and ES2)
-        // Loaded: State.defaultShaderId + State.defaultShaderLocs
+        // Loaded: state.defaultShaderId + state.defaultShaderLocs
         LoadShaderDefault();
-        State.currentShaderId = State.defaultShaderId;
-        State.currentShaderLocs = State.defaultShaderLocs;
+        state.currentShaderId = state.defaultShaderId;
+        state.currentShaderLocs = state.defaultShaderLocs;
 
         // Init default vertex arrays buffers
-        defaultBatch = std::make_unique<RenderBatch>(this, RL_DEFAULT_BATCH_BUFFERS, RL_DEFAULT_BATCH_BUFFER_ELEMENTS);
+        defaultBatch = std::make_unique<RenderBatch>(*this, RL_DEFAULT_BATCH_BUFFERS, RL_DEFAULT_BATCH_BUFFER_ELEMENTS);
         currentBatch = defaultBatch.get();
 
         // Init vertexCounter
-        State.vertexCounter = 0;
+        state.vertexCounter = 0;
 
         // Init stack matrices (emulating OpenGL 1.1)
-        std::fill(State.stack, State.stack + RL_MAX_MATRIX_STACK_SIZE, Matrix::Identity());
+        std::fill(state.stack, state.stack + RL_MAX_MATRIX_STACK_SIZE, Matrix::Identity());
 
         // Init internal matrices
-        State.transform = Matrix::Identity();
-        State.projection = Matrix::Identity();
-        State.modelview = Matrix::Identity();
-        State.currentMatrix = &State.modelview;
+        state.transform = Matrix::Identity();
+        state.projection = Matrix::Identity();
+        state.modelview = Matrix::Identity();
+        state.currentMatrix = &state.modelview;
 
 #   endif  // GRAPHICS_API_OPENGL_33 || GRAPHICS_API_OPENGL_ES2
 
@@ -107,8 +107,8 @@ Context::Context(int width, int height, void *extLoader(const char *))
 
 #   if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
         // Store screen size into global variables
-        State.framebufferWidth = width;
-        State.framebufferHeight = height;
+        state.framebufferWidth = width;
+        state.framebufferHeight = height;
 
         TRACELOG(TraceLogLevel::Info, "RLGL: Default OpenGL state initialized successfully");
         //----------------------------------------------------------
@@ -125,9 +125,9 @@ Context::~Context()
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
 
     UnloadShaderDefault();                          // Unload default shader
-    glDeleteTextures(1, &State.defaultTextureId);   // Unload default texture
+    glDeleteTextures(1, &state.defaultTextureId);   // Unload default texture
 
-    TRACELOG(TraceLogLevel::Info, "TEXTURE: [ID %i] Default texture unloaded successfully", State.defaultTextureId);
+    TRACELOG(TraceLogLevel::Info, "TEXTURE: [ID %i] Default texture unloaded successfully", state.defaultTextureId);
 
 #endif
 }
@@ -202,11 +202,11 @@ void Context::MatrixMode(enum MatrixMode mode)
     switch (mode)
     {
         case MatrixMode::Projection:
-            State.currentMatrix = &State.projection;
+            state.currentMatrix = &state.projection;
             break;
 
         case MatrixMode::ModelView:
-            State.currentMatrix = &State.modelview;
+            state.currentMatrix = &state.modelview;
             break;
 
         case MatrixMode::Texture:
@@ -214,48 +214,48 @@ void Context::MatrixMode(enum MatrixMode mode)
             break;
     }
 
-    State.currentMatrixMode = mode;
+    state.currentMatrixMode = mode;
 }
 
-// Push the current matrix into State.stack
+// Push the current matrix into state.stack
 void Context::PushMatrix()
 {
-    if (State.stackCounter >= RL_MAX_MATRIX_STACK_SIZE)
+    if (state.stackCounter >= RL_MAX_MATRIX_STACK_SIZE)
     {
         TRACELOG(TraceLogLevel::Error, "RLGL: Matrix stack overflow (RL_MAX_MATRIX_STACK_SIZE)");
     }
 
-    if (State.currentMatrixMode == MatrixMode::ModelView)
+    if (state.currentMatrixMode == MatrixMode::ModelView)
     {
-        State.transformRequired = true;
-        State.currentMatrix = &State.transform;
+        state.transformRequired = true;
+        state.currentMatrix = &state.transform;
     }
 
-    State.stack[State.stackCounter] = *State.currentMatrix;
-    State.stackCounter++;
+    state.stack[state.stackCounter] = *state.currentMatrix;
+    state.stackCounter++;
 }
 
-// Pop lattest inserted matrix from State.stack
+// Pop lattest inserted matrix from state.stack
 void Context::PopMatrix()
 {
-    if (State.stackCounter > 0)
+    if (state.stackCounter > 0)
     {
-        Matrix mat = State.stack[State.stackCounter - 1];
-        *State.currentMatrix = mat;
-        State.stackCounter--;
+        Matrix mat = state.stack[state.stackCounter - 1];
+        *state.currentMatrix = mat;
+        state.stackCounter--;
     }
 
-    if ((State.stackCounter == 0) && (State.currentMatrixMode == MatrixMode::ModelView))
+    if ((state.stackCounter == 0) && (state.currentMatrixMode == MatrixMode::ModelView))
     {
-        State.currentMatrix = &State.modelview;
-        State.transformRequired = false;
+        state.currentMatrix = &state.modelview;
+        state.transformRequired = false;
     }
 }
 
 // Reset current matrix to identity matrix
 void Context::LoadIdentity()
 {
-    *State.currentMatrix = Matrix::Identity();
+    *state.currentMatrix = Matrix::Identity();
 }
 
 // Multiply the current matrix by a translation matrix
@@ -269,7 +269,7 @@ void Context::Translate(float x, float y, float z)
     };
 
     // NOTE: We transpose matrix with multiplication order
-    *State.currentMatrix = matTranslation * (*State.currentMatrix);
+    *state.currentMatrix = matTranslation * (*state.currentMatrix);
 }
 
 // Multiply the current matrix by a rotation matrix
@@ -314,7 +314,7 @@ void Context::Rotate(float angle, float x, float y, float z)
     matRotation.m[15] = 1.0f;
 
     // NOTE: We transpose matrix with multiplication order
-    *State.currentMatrix = matRotation * (*State.currentMatrix);
+    *state.currentMatrix = matRotation * (*state.currentMatrix);
 }
 
 // Multiply the current matrix by a scaling matrix
@@ -328,13 +328,13 @@ void Context::Scale(float x, float y, float z)
     };
 
     // NOTE: We transpose matrix with multiplication order
-    *State.currentMatrix = matScale * (*State.currentMatrix);
+    *state.currentMatrix = matScale * (*state.currentMatrix);
 }
 
 // Multiply the current matrix by another matrix
 void Context::MultMatrix(const float *matf)
 {
-    *State.currentMatrix = (*State.currentMatrix) * matf;
+    *state.currentMatrix = (*state.currentMatrix) * matf;
 }
 
 // Multiply the current matrix by a perspective matrix generated by parameters
@@ -366,7 +366,7 @@ void Context::Frustum(double left, double right, double bottom, double top, doub
     matFrustum.m[14]  = -(zfar*znear*2.0f)/fn;
     matFrustum.m[15]  = 0.0f;
 
-    *State.currentMatrix = (*State.currentMatrix) * matFrustum;
+    *state.currentMatrix = (*state.currentMatrix) * matFrustum;
 }
 
 // Multiply the current matrix by an orthographic matrix generated by parameters
@@ -397,7 +397,7 @@ void Context::Ortho(double left, double right, double bottom, double top, double
     matOrtho.m[14] = -(zfar + znear)/fn;
     matOrtho.m[15] = 1.0f;
 
-    *State.currentMatrix = (*State.currentMatrix) * matOrtho;
+    *state.currentMatrix = (*state.currentMatrix) * matOrtho;
 }
 
 #endif
@@ -508,26 +508,21 @@ void Context::Begin(DrawMode mode)
 
             if (!CheckRenderBatchLimit(drawCall->vertexAlignment))
             {
-                State.vertexCounter += drawCall->vertexAlignment;
-                currentBatch->drawCounter++;
-
-                // Update drawCall after drawCounter incrementation
-                drawCall = currentBatch->GetLastDrawCall();
+                state.vertexCounter += drawCall->vertexAlignment;
+                drawCall = currentBatch->NewDrawCall();
             }
         }
 
-        if (currentBatch->drawCounter >= RL_DEFAULT_BATCH_DRAWCALLS)
+        if (currentBatch->GetDrawCounter() >= RL_DEFAULT_BATCH_DRAWCALLS)
         {
             DrawRenderBatch(currentBatch);
-
-            // Update drawCall after DrawRenderBatch
             drawCall = currentBatch->GetLastDrawCall();
         }
 
         // Initialize the new drawCall
         drawCall->mode = mode;
         drawCall->vertexCount = 0;
-        drawCall->textureId = State.defaultTextureId;
+        drawCall->textureId = state.defaultTextureId;
     }
 }
 
@@ -537,7 +532,7 @@ void Context::End()
     // NOTE: Depth increment is dependant on Context::Ortho(): z-near and z-far values,
     // as well as depth buffer bit-depth (16bit or 24bit or 32bit)
     // Correct increment formula would be: depthInc = (zfar - znear)/pow(2, bits)
-    currentBatch->currentDepth += 1.0f / 20000.0f;
+    currentBatch->IncrementCurrentDepth(1.0f / 20000.0f);
 }
 
 // Define one vertex (position)
@@ -550,11 +545,11 @@ void Context::Vertex(float x, float y, float z)
     float tx = x, ty = y, tz = z;
 
     // Transform provided vector if required
-    if (State.transformRequired)
+    if (state.transformRequired)
     {
-        tx = State.transform.m[0]*x + State.transform.m[4]*y + State.transform.m[8]*z + State.transform.m[12];
-        ty = State.transform.m[1]*x + State.transform.m[5]*y + State.transform.m[9]*z + State.transform.m[13];
-        tz = State.transform.m[2]*x + State.transform.m[6]*y + State.transform.m[10]*z + State.transform.m[14];
+        tx = state.transform.m[0]*x + state.transform.m[4]*y + state.transform.m[8]*z + state.transform.m[12];
+        ty = state.transform.m[1]*x + state.transform.m[5]*y + state.transform.m[9]*z + state.transform.m[13];
+        tz = state.transform.m[2]*x + state.transform.m[6]*y + state.transform.m[10]*z + state.transform.m[14];
     }
 
     // WARNING: We can't break primitives when launching a new batch.
@@ -566,7 +561,7 @@ void Context::Vertex(float x, float y, float z)
         : (drawCall->mode == DrawMode::Triangles) ? 3 : /*QUAD*/ 4;
 
     // Check if the vertex counter has reached the limit for the current draw mode
-    if (State.vertexCounter > (curBuffer->elementCount * requiredVertices - requiredVertices))
+    if (state.vertexCounter > (curBuffer->elementCount * requiredVertices - requiredVertices))
     {
         // Check if the current vertex count is a multiple of the required vertices for the draw mode
         if (drawCall->vertexCount % requiredVertices == 0)
@@ -582,62 +577,62 @@ void Context::Vertex(float x, float y, float z)
     }
 
     // Add vertices
-    curBuffer->vertices[3*State.vertexCounter] = tx;
-    curBuffer->vertices[3*State.vertexCounter + 1] = ty;
-    curBuffer->vertices[3*State.vertexCounter + 2] = tz;
+    curBuffer->vertices[3*state.vertexCounter] = tx;
+    curBuffer->vertices[3*state.vertexCounter + 1] = ty;
+    curBuffer->vertices[3*state.vertexCounter + 2] = tz;
 
     // Add current texcoord
-    curBuffer->texcoords[2*State.vertexCounter] = State.texcoordx;
-    curBuffer->texcoords[2*State.vertexCounter + 1] = State.texcoordy;
+    curBuffer->texcoords[2*state.vertexCounter] = state.texcoordx;
+    curBuffer->texcoords[2*state.vertexCounter + 1] = state.texcoordy;
 
     // WARNING: By default rlVertexBuffer struct does not store normals
 
     // Add current color
-    curBuffer->colors[4*State.vertexCounter] = State.colorr;
-    curBuffer->colors[4*State.vertexCounter + 1] = State.colorg;
-    curBuffer->colors[4*State.vertexCounter + 2] = State.colorb;
-    curBuffer->colors[4*State.vertexCounter + 3] = State.colora;
+    curBuffer->colors[4*state.vertexCounter] = state.colorr;
+    curBuffer->colors[4*state.vertexCounter + 1] = state.colorg;
+    curBuffer->colors[4*state.vertexCounter + 2] = state.colorb;
+    curBuffer->colors[4*state.vertexCounter + 3] = state.colora;
 
-    State.vertexCounter++;
+    state.vertexCounter++;
     drawCall->vertexCount++;
 }
 
 // Define one vertex (position)
 void Context::Vertex(float x, float y)
 {
-    Vertex(x, y, currentBatch->currentDepth);
+    Vertex(x, y, currentBatch->GetCurrentDepth());
 }
 
 // Define one vertex (position)
 void Context::Vertex(int x, int y)
 {
-    Vertex(static_cast<float>(x), static_cast<float>(y), currentBatch->currentDepth);
+    Vertex(static_cast<float>(x), static_cast<float>(y), currentBatch->GetCurrentDepth());
 }
 
 // Define one vertex (texture coordinate)
 // NOTE: Texture coordinates are limited to QUADS only
 void Context::TexCoord(float x, float y)
 {
-    State.texcoordx = x;
-    State.texcoordy = y;
+    state.texcoordx = x;
+    state.texcoordy = y;
 }
 
 // Define one vertex (normal)
 // NOTE: Normals limited to TRIANGLES only?
 void Context::Normal(float x, float y, float z)
 {
-    State.normalx = x;
-    State.normaly = y;
-    State.normalz = z;
+    state.normalx = x;
+    state.normaly = y;
+    state.normalz = z;
 }
 
 // Define one vertex (color)
 void Context::Color(uint8_t x, uint8_t y, uint8_t z, uint8_t w)
 {
-    State.colorr = x;
-    State.colorg = y;
-    State.colorb = z;
-    State.colora = w;
+    state.colorr = x;
+    state.colorg = y;
+    state.colorb = z;
+    state.colora = w;
 }
 
 // Define one vertex (color)
@@ -675,7 +670,7 @@ void Context::SetTexture(uint32_t id)
 
     if (id == 0)
     {
-        if (State.vertexCounter >= currentBatch->GetCurrentBuffer()->elementCount*4)
+        if (state.vertexCounter >= currentBatch->GetCurrentBuffer()->elementCount*4)
         {
             DrawRenderBatch(currentBatch);
         }
@@ -711,15 +706,12 @@ void Context::SetTexture(uint32_t id)
 
         if (!CheckRenderBatchLimit(drawCall->vertexAlignment))
         {
-            State.vertexCounter += drawCall->vertexAlignment;
-            currentBatch->drawCounter++;
-
-            // Update drawCall after drawCounter incrementation
-            drawCall = currentBatch->GetLastDrawCall();
+            state.vertexCounter += drawCall->vertexAlignment;
+            drawCall = currentBatch->NewDrawCall();
         }
     }
 
-    if (currentBatch->drawCounter >= RL_DEFAULT_BATCH_DRAWCALLS)
+    if (currentBatch->GetDrawCounter() >= RL_DEFAULT_BATCH_DRAWCALLS)
     {
         DrawRenderBatch(currentBatch);
 
@@ -1143,7 +1135,7 @@ void Context::SetLineWidth(float width)
 }
 
 // Get the line drawing width
-float Context::GetLineWidth()
+float Context::GetLineWidth() const
 {
     float width = 0;
     glGetFloatv(GL_LINE_WIDTH, &width);
@@ -1170,7 +1162,7 @@ void Context::DisableSmoothLines()
 void Context::EnableStereoRender()
 {
 #if (defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2))
-    State.stereoRender = true;
+    state.stereoRender = true;
 #endif
 }
 
@@ -1178,7 +1170,7 @@ void Context::EnableStereoRender()
 void Context::DisableStereoRender()
 {
 #if (defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2))
-    State.stereoRender = false;
+    state.stereoRender = false;
 #endif
 }
 
@@ -1186,7 +1178,7 @@ void Context::DisableStereoRender()
 bool Context::IsStereoRenderEnabled()
 {
 #if (defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2))
-    return State.stereoRender;
+    return state.stereoRender;
 #else
     return false;
 #endif
@@ -1234,7 +1226,7 @@ void Context::CheckErrors()
 void Context::SetBlendMode(BlendMode mode)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    if ((State.currentBlendMode != mode) || ((mode == BlendMode::Custom || mode == BlendMode::CustomSeparate) && State.glCustomBlendModeModified))
+    if ((state.currentBlendMode != mode) || ((mode == BlendMode::Custom || mode == BlendMode::CustomSeparate) && state.glCustomBlendModeModified))
     {
         DrawRenderBatch(currentBatch);
 
@@ -1249,21 +1241,21 @@ void Context::SetBlendMode(BlendMode mode)
             case BlendMode::Custom:
             {
                 // NOTE: Using GL blend src/dst factors and GL equation configured with Context::SetBlendFactors()
-                glBlendFunc(State.glBlendSrcFactor, State.glBlendDstFactor); glBlendEquation(State.glBlendEquation);
+                glBlendFunc(state.glBlendSrcFactor, state.glBlendDstFactor); glBlendEquation(state.glBlendEquation);
 
             } break;
             case BlendMode::CustomSeparate:
             {
                 // NOTE: Using GL blend src/dst factors and GL equation configured with Context::SetBlendFactorsSeparate()
-                glBlendFuncSeparate(State.glBlendSrcFactorRGB, State.glBlendDestFactorRGB, State.glBlendSrcFactorAlpha, State.glBlendDestFactorAlpha);
-                glBlendEquationSeparate(State.glBlendEquationRGB, State.glBlendEquationAlpha);
+                glBlendFuncSeparate(state.glBlendSrcFactorRGB, state.glBlendDestFactorRGB, state.glBlendSrcFactorAlpha, state.glBlendDestFactorAlpha);
+                glBlendEquationSeparate(state.glBlendEquationRGB, state.glBlendEquationAlpha);
 
             } break;
             default: break;
         }
 
-        State.currentBlendMode = mode;
-        State.glCustomBlendModeModified = false;
+        state.currentBlendMode = mode;
+        state.glCustomBlendModeModified = false;
     }
 #endif
 }
@@ -1272,15 +1264,15 @@ void Context::SetBlendMode(BlendMode mode)
 void Context::SetBlendFactors(int glSrcFactor, int glDstFactor, int glEquation)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    if ((State.glBlendSrcFactor != glSrcFactor) ||
-        (State.glBlendDstFactor != glDstFactor) ||
-        (State.glBlendEquation != glEquation))
+    if ((state.glBlendSrcFactor != glSrcFactor) ||
+        (state.glBlendDstFactor != glDstFactor) ||
+        (state.glBlendEquation != glEquation))
     {
-        State.glBlendSrcFactor = glSrcFactor;
-        State.glBlendDstFactor = glDstFactor;
-        State.glBlendEquation = glEquation;
+        state.glBlendSrcFactor = glSrcFactor;
+        state.glBlendDstFactor = glDstFactor;
+        state.glBlendEquation = glEquation;
 
-        State.glCustomBlendModeModified = true;
+        state.glCustomBlendModeModified = true;
     }
 #endif
 }
@@ -1289,21 +1281,21 @@ void Context::SetBlendFactors(int glSrcFactor, int glDstFactor, int glEquation)
 void Context::SetBlendFactorsSeparate(int glSrcRGB, int glDstRGB, int glSrcAlpha, int glDstAlpha, int glEqRGB, int glEqAlpha)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    if ((State.glBlendSrcFactorRGB != glSrcRGB) ||
-        (State.glBlendDestFactorRGB != glDstRGB) ||
-        (State.glBlendSrcFactorAlpha != glSrcAlpha) ||
-        (State.glBlendDestFactorAlpha != glDstAlpha) ||
-        (State.glBlendEquationRGB != glEqRGB) ||
-        (State.glBlendEquationAlpha != glEqAlpha))
+    if ((state.glBlendSrcFactorRGB != glSrcRGB) ||
+        (state.glBlendDestFactorRGB != glDstRGB) ||
+        (state.glBlendSrcFactorAlpha != glSrcAlpha) ||
+        (state.glBlendDestFactorAlpha != glDstAlpha) ||
+        (state.glBlendEquationRGB != glEqRGB) ||
+        (state.glBlendEquationAlpha != glEqAlpha))
     {
-        State.glBlendSrcFactorRGB = glSrcRGB;
-        State.glBlendDestFactorRGB = glDstRGB;
-        State.glBlendSrcFactorAlpha = glSrcAlpha;
-        State.glBlendDestFactorAlpha = glDstAlpha;
-        State.glBlendEquationRGB = glEqRGB;
-        State.glBlendEquationAlpha = glEqAlpha;
+        state.glBlendSrcFactorRGB = glSrcRGB;
+        state.glBlendDestFactorRGB = glDstRGB;
+        state.glBlendSrcFactorAlpha = glSrcAlpha;
+        state.glBlendDestFactorAlpha = glDstAlpha;
+        state.glBlendEquationRGB = glEqRGB;
+        state.glBlendEquationAlpha = glEqAlpha;
 
-        State.glCustomBlendModeModified = true;
+        state.glCustomBlendModeModified = true;
     }
 #endif
 }
@@ -1376,7 +1368,7 @@ static void GLAPIENTRY DebugMessageCallback(GLenum source, GLenum type, GLuint i
 void Context::SetFramebufferWidth(int width)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    State.framebufferWidth = width;
+    state.framebufferWidth = width;
 #endif
 }
 
@@ -1384,57 +1376,57 @@ void Context::SetFramebufferWidth(int width)
 void Context::SetFramebufferHeight(int height)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    State.framebufferHeight = height;
+    state.framebufferHeight = height;
 #endif
 }
 
 // Get default framebuffer width
-int Context::GetFramebufferWidth()
+int Context::GetFramebufferWidth() const
 {
     int width = 0;
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    width = State.framebufferWidth;
+    width = state.framebufferWidth;
 #endif
     return width;
 }
 
 // Get default framebuffer height
-int Context::GetFramebufferHeight()
+int Context::GetFramebufferHeight() const
 {
     int height = 0;
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    height = State.framebufferHeight;
+    height = state.framebufferHeight;
 #endif
     return height;
 }
 
 // Get default internal texture (white texture)
 // NOTE: Default texture is a 1x1 pixel UNCOMPRESSED_R8G8B8A8
-uint32_t Context::GetTextureIdDefault()
+uint32_t Context::GetTextureIdDefault() const
 {
     uint32_t id = 0;
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    id = State.defaultTextureId;
+    id = state.defaultTextureId;
 #endif
     return id;
 }
 
 // Get default shader id
-uint32_t Context::GetShaderIdDefault()
+uint32_t Context::GetShaderIdDefault() const
 {
     uint32_t id = 0;
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    id = State.defaultShaderId;
+    id = state.defaultShaderId;
 #endif
     return id;
 }
 
 // Get default shader locs
-int *Context::GetShaderLocsDefault()
+const int *Context::GetShaderLocsDefault() const
 {
-    int *locs = nullptr;
+    const int *locs = nullptr;
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    locs = State.defaultShaderLocs;
+    locs = state.defaultShaderLocs;
 #endif
     return locs;
 }
@@ -1448,13 +1440,13 @@ void Context::DrawRenderBatch(RenderBatch* batch)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
 
-    batch->Draw(this);
+    batch->Draw(*this);
 
     // Reset vertex counter for next frame
-    State.vertexCounter = 0;
+    state.vertexCounter = 0;
 
     // Reset active texture units for next batch
-    std::fill(State.activeTextureId, State.activeTextureId + RL_DEFAULT_BATCH_MAX_TEXTURE_UNITS, 0);
+    std::fill(state.activeTextureId, state.activeTextureId + RL_DEFAULT_BATCH_MAX_TEXTURE_UNITS, 0);
 
 #endif
 }
@@ -1498,19 +1490,21 @@ bool Context::CheckRenderBatchLimit(int vCount)
 
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
 
-    if ((State.vertexCounter + vCount) >= (currentBatch->vertexBuffer[currentBatch->currentBuffer].elementCount*4))
+    if ((state.vertexCounter + vCount) >= (currentBatch->GetCurrentBuffer()->elementCount*4))
     {
         overflow = true;
 
         // Store current primitive drawing mode and texture id
-        DrawMode currentMode = currentBatch->draws[currentBatch->drawCounter - 1].mode;
-        int currentTexture = currentBatch->draws[currentBatch->drawCounter - 1].textureId;
+        DrawCall *drawCall = currentBatch->GetLastDrawCall();
+        int currentTexture = drawCall->textureId;
+        DrawMode currentMode = drawCall->mode;
 
         DrawRenderBatch(currentBatch);    // NOTE: Stereo rendering is checked inside
 
         // Restore state of last batch so we can continue adding vertices
-        currentBatch->draws[currentBatch->drawCounter - 1].mode = currentMode;
-        currentBatch->draws[currentBatch->drawCounter - 1].textureId = currentTexture;
+        drawCall = currentBatch->GetLastDrawCall();
+        drawCall->textureId = currentTexture;
+        drawCall->mode = currentMode;
     }
 
 #endif
@@ -2351,15 +2345,15 @@ uint32_t Context::LoadShaderCode(const char *vsCode, const char *fsCode)
     // Compile vertex shader (if provided)
     if (vsCode != nullptr) vertexShaderId = CompileShader(vsCode, GL_VERTEX_SHADER);
     // In case no vertex shader was provided or compilation failed, we use default vertex shader
-    if (vertexShaderId == 0) vertexShaderId = State.defaultVShaderId;
+    if (vertexShaderId == 0) vertexShaderId = state.defaultVShaderId;
 
     // Compile fragment shader (if provided)
     if (fsCode != nullptr) fragmentShaderId = CompileShader(fsCode, GL_FRAGMENT_SHADER);
     // In case no fragment shader was provided or compilation failed, we use default fragment shader
-    if (fragmentShaderId == 0) fragmentShaderId = State.defaultFShaderId;
+    if (fragmentShaderId == 0) fragmentShaderId = state.defaultFShaderId;
 
     // In case vertex and fragment shader are the default ones, no need to recompile, we can just assign the default shader program id
-    if ((vertexShaderId == State.defaultVShaderId) && (fragmentShaderId == State.defaultFShaderId)) id = State.defaultShaderId;
+    if ((vertexShaderId == state.defaultVShaderId) && (fragmentShaderId == state.defaultFShaderId)) id = state.defaultShaderId;
     else
     {
         // One of or both shader are new, we need to compile a new shader program
@@ -2367,13 +2361,13 @@ uint32_t Context::LoadShaderCode(const char *vsCode, const char *fsCode)
 
         // We can detach and delete vertex/fragment shaders (if not default ones)
         // NOTE: We detach shader before deletion to make sure memory is freed
-        if (vertexShaderId != State.defaultVShaderId)
+        if (vertexShaderId != state.defaultVShaderId)
         {
             // WARNING: Shader program linkage could fail and returned id is 0
             if (id > 0) glDetachShader(id, vertexShaderId);
             glDeleteShader(vertexShaderId);
         }
-        if (fragmentShaderId != State.defaultFShaderId)
+        if (fragmentShaderId != state.defaultFShaderId)
         {
             // WARNING: Shader program linkage could fail and returned id is 0
             if (id > 0) glDetachShader(id, fragmentShaderId);
@@ -2385,7 +2379,7 @@ uint32_t Context::LoadShaderCode(const char *vsCode, const char *fsCode)
         {
             // In case shader loading fails, we return the default shader
             TRACELOG(TraceLogLevel::Warning, "SHADER: Failed to load custom shader code, using default shader");
-            id = State.defaultShaderId;
+            id = state.defaultShaderId;
         }
         /*
         else
@@ -2542,7 +2536,7 @@ void Context::UnloadShaderProgram(uint32_t id)
 }
 
 // Get shader location uniform
-int Context::GetLocationUniform(uint32_t shaderId, const std::string& uniformName)
+int Context::GetLocationUniform(uint32_t shaderId, const std::string& uniformName) const
 {
     int location = -1;
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
@@ -2555,7 +2549,7 @@ int Context::GetLocationUniform(uint32_t shaderId, const std::string& uniformNam
 }
 
 // Get shader location attribute
-int Context::GetLocationAttrib(uint32_t shaderId, const std::string& attribName)
+int Context::GetLocationAttrib(uint32_t shaderId, const std::string& attribName) const
 {
     int location = -1;
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
@@ -2616,16 +2610,16 @@ void Context::SetUniformSampler(int locIndex, uint32_t textureId)
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     // Check if texture is already active
     for (int i = 0; i < RL_DEFAULT_BATCH_MAX_TEXTURE_UNITS; i++)
-        if (State.activeTextureId[i] == textureId) return;
+        if (state.activeTextureId[i] == textureId) return;
 
     // Register a new active texture for the internal batch system
     // NOTE: Default texture is always activated as GL_TEXTURE0
     for (int i = 0; i < RL_DEFAULT_BATCH_MAX_TEXTURE_UNITS; i++)
     {
-        if (State.activeTextureId[i] == 0)
+        if (state.activeTextureId[i] == 0)
         {
             glUniform1i(locIndex, 1 + i);              // Activate new texture unit
-            State.activeTextureId[i] = textureId; // Save texture id for binding on drawing
+            state.activeTextureId[i] = textureId; // Save texture id for binding on drawing
             break;
         }
     }
@@ -2633,14 +2627,14 @@ void Context::SetUniformSampler(int locIndex, uint32_t textureId)
 }
 
 // Set shader currently active (id and locations)
-void Context::SetShader(uint32_t id, int *locs)
+void Context::SetShader(uint32_t id, const int *locs)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    if (State.currentShaderId != id)
+    if (state.currentShaderId != id)
     {
         DrawRenderBatch(currentBatch);
-        State.currentShaderId = id;
-        State.currentShaderLocs = locs;
+        state.currentShaderId = id;
+        state.currentShaderLocs = locs;
     }
 #endif
 }
@@ -2735,7 +2729,7 @@ void Context::UpdateShaderBuffer(uint32_t id, const void *data, uint32_t dataSiz
 }
 
 // Get SSBO buffer size
-uint32_t Context::GetShaderBufferSize(uint32_t id)
+uint32_t Context::GetShaderBufferSize(uint32_t id) const
 {
     long long size = 0;
 
@@ -2789,65 +2783,65 @@ void Context::BindImageTexture(uint32_t id, uint32_t index, int format, bool rea
 // Matrix state management
 //-----------------------------------------------------------------------------------------
 // Get internal modelview matrix
-Matrix Context::GetMatrixModelview()
+Matrix Context::GetMatrixModelview() const
 {
     Matrix matrix;
 
 #if defined(GRAPHICS_API_OPENGL_11)
     glGetFloatv(GL_MODELVIEW_MATRIX, matrix.m);
 #else
-    matrix = State.modelview;
+    matrix = state.modelview;
 #endif
 
     return matrix;
 }
 
 // Get internal projection matrix
-Matrix Context::GetMatrixProjection()
+Matrix Context::GetMatrixProjection() const
 {
     Matrix matrix;
 
 #if defined(GRAPHICS_API_OPENGL_11)
     glGetFloatv(GL_PROJECTION_MATRIX, matrix.m);
 #else
-    matrix = State.projection;
+    matrix = state.projection;
 #endif
 
     return matrix;
 }
 
 // Get internal accumulated transform matrix
-Matrix Context::GetMatrixTransform()
+Matrix Context::GetMatrixTransform() const
 {
     Matrix mat = Matrix::Identity();
 
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    // TODO: Consider possible transform matrices in the State.stack
+    // TODO: Consider possible transform matrices in the state.stack
     // Is this the right order? or should we start with the first stored matrix instead of the last one?
     //Matrix matStackTransform = Matrix::Identity();
-    //for (int i = State.stackCounter; i > 0; i--) matStackTransform = State.stack[i] * matStackTransform;
-    mat = State.transform;
+    //for (int i = state.stackCounter; i > 0; i--) matStackTransform = state.stack[i] * matStackTransform;
+    mat = state.transform;
 #endif
 
     return mat;
 }
 
 // Get internal projection matrix for stereo render (selected eye)
-Matrix Context::GetMatrixProjectionStereo(int eye)
+Matrix Context::GetMatrixProjectionStereo(int eye) const
 {
     Matrix mat = Matrix::Identity();
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    mat = State.projectionStereo[eye];
+    mat = state.projectionStereo[eye];
 #endif
     return mat;
 }
 
 // Get internal view offset matrix for stereo render (selected eye)
-Matrix Context::GetMatrixViewOffsetStereo(int eye)
+Matrix Context::GetMatrixViewOffsetStereo(int eye) const
 {
     Matrix mat = Matrix::Identity();
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    mat = State.viewOffsetStereo[eye];
+    mat = state.viewOffsetStereo[eye];
 #endif
     return mat;
 }
@@ -2856,7 +2850,7 @@ Matrix Context::GetMatrixViewOffsetStereo(int eye)
 void Context::SetMatrixModelview(const Matrix& view)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    State.modelview = view;
+    state.modelview = view;
 #endif
 }
 
@@ -2864,7 +2858,7 @@ void Context::SetMatrixModelview(const Matrix& view)
 void Context::SetMatrixProjection(const Matrix& projection)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    State.projection = projection;
+    state.projection = projection;
 #endif
 }
 
@@ -2872,8 +2866,8 @@ void Context::SetMatrixProjection(const Matrix& projection)
 void Context::SetMatrixProjectionStereo(const Matrix& right, const Matrix& left)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    State.projectionStereo[0] = right;
-    State.projectionStereo[1] = left;
+    state.projectionStereo[0] = right;
+    state.projectionStereo[1] = left;
 #endif
 }
 
@@ -2881,8 +2875,8 @@ void Context::SetMatrixProjectionStereo(const Matrix& right, const Matrix& left)
 void Context::SetMatrixViewOffsetStereo(const Matrix& right, const Matrix& left)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    State.viewOffsetStereo[0] = right;
-    State.viewOffsetStereo[1] = left;
+    state.viewOffsetStereo[0] = right;
+    state.viewOffsetStereo[1] = left;
 #endif
 }
 
@@ -3005,52 +2999,19 @@ void Context::LoadDrawCube()
 #endif
 }
 
-// Get name string for pixel format
-const char *Context::GetPixelFormatName(PixelFormat format)
-{
-    switch (format)
-    {
-        case PixelFormat::Grayscale:        return "GRAYSCALE"; break;      ///< 8 bit per pixel (no alpha)
-        case PixelFormat::GrayAlpha:        return "GRAY_ALPHA"; break;     ///< 8*2 bpp (2 channels)
-        case PixelFormat::R5G6B5:           return "R5G6B5"; break;         ///< 16 bpp
-        case PixelFormat::R8G8B8:           return "R8G8B8"; break;         ///< 24 bpp
-        case PixelFormat::R5G5B5A1:         return "R5G5B5A1"; break;       ///< 16 bpp (1 bit alpha)
-        case PixelFormat::R4G4B4A4:         return "R4G4B4A4"; break;       ///< 16 bpp (4 bit alpha)
-        case PixelFormat::R8G8B8A8:         return "R8G8B8A8"; break;       ///< 32 bpp
-        case PixelFormat::R32:              return "R32"; break;            ///< 32 bpp (1 channel - float)
-        case PixelFormat::R32G32B32:        return "R32G32B32"; break;      ///< 32*3 bpp (3 channels - float)
-        case PixelFormat::R32G32B32A32:     return "R32G32B32A32"; break;   ///< 32*4 bpp (4 channels - float)
-        case PixelFormat::R16:              return "R16"; break;            ///< 16 bpp (1 channel - half float)
-        case PixelFormat::R16G16B16:        return "R16G16B16"; break;      ///< 16*3 bpp (3 channels - half float)
-        case PixelFormat::R16G16B16A16:     return "R16G16B16A16"; break;   ///< 16*4 bpp (4 channels - half float)
-        case PixelFormat::DXT1_RGB:         return "DXT1_RGB"; break;       ///< 4 bpp (no alpha)
-        case PixelFormat::DXT1_RGBA:        return "DXT1_RGBA"; break;      ///< 4 bpp (1 bit alpha)
-        case PixelFormat::DXT3_RGBA:        return "DXT3_RGBA"; break;      ///< 8 bpp
-        case PixelFormat::DXT5_RGBA:        return "DXT5_RGBA"; break;      ///< 8 bpp
-        case PixelFormat::ETC1_RGB:         return "ETC1_RGB"; break;       ///< 4 bpp
-        case PixelFormat::ETC2_RGB:         return "ETC2_RGB"; break;       ///< 4 bpp
-        case PixelFormat::ETC2_EAC_RGBA:    return "ETC2_RGBA"; break;      ///< 8 bpp
-        case PixelFormat::PVRT_RGB:         return "PVRT_RGB"; break;       ///< 4 bpp
-        case PixelFormat::PVRT_RGBA:        return "PVRT_RGBA"; break;      ///< 4 bpp
-        case PixelFormat::ASTC_4x4_RGBA:    return "ASTC_4x4_RGBA"; break;  ///< 8 bpp
-        case PixelFormat::ASTC_8x8_RGBA:    return "ASTC_8x8_RGBA"; break;  ///< 2 bpp
-        default:                            return "UNKNOWN"; break;
-    }
-}
-
 //----------------------------------------------------------------------------------
 // Module specific Functions Definition
 //----------------------------------------------------------------------------------
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
 // Load default shader (just vertex positioning and texture coloring)
 // NOTE: This shader program is used for internal buffers
-// NOTE: Loaded: State.defaultShaderId, State.defaultShaderLocs
+// NOTE: Loaded: state.defaultShaderId, state.defaultShaderLocs
 void Context::LoadShaderDefault()
 {
-    State.defaultShaderLocs = new int[RL_MAX_SHADER_LOCATIONS];
+    state.defaultShaderLocs = new int[RL_MAX_SHADER_LOCATIONS];
 
     // NOTE: All locations must be reseted to -1 (no location)
-    std::fill(State.defaultShaderLocs, State.defaultShaderLocs + RL_MAX_SHADER_LOCATIONS, -1);
+    std::fill(state.defaultShaderLocs, state.defaultShaderLocs + RL_MAX_SHADER_LOCATIONS, -1);
 
     // Vertex shader directly defined, no external file required
     const char *defaultVShaderCode =
@@ -3128,44 +3089,44 @@ void Context::LoadShaderDefault()
 
     // NOTE: Compiled vertex/fragment shaders are not deleted,
     // they are kept for re-use as default shaders in case some shader loading fails
-    State.defaultVShaderId = CompileShader(defaultVShaderCode, GL_VERTEX_SHADER);     // Compile default vertex shader
-    State.defaultFShaderId = CompileShader(defaultFShaderCode, GL_FRAGMENT_SHADER);   // Compile default fragment shader
+    state.defaultVShaderId = CompileShader(defaultVShaderCode, GL_VERTEX_SHADER);     // Compile default vertex shader
+    state.defaultFShaderId = CompileShader(defaultFShaderCode, GL_FRAGMENT_SHADER);   // Compile default fragment shader
 
-    State.defaultShaderId = LoadShaderProgram(State.defaultVShaderId, State.defaultFShaderId);
+    state.defaultShaderId = LoadShaderProgram(state.defaultVShaderId, state.defaultFShaderId);
 
-    if (State.defaultShaderId > 0)
+    if (state.defaultShaderId > 0)
     {
-        TRACELOG(RL_LOG_INFO, "SHADER: [ID %i] Default shader loaded successfully", State.defaultShaderId);
+        TRACELOG(RL_LOG_INFO, "SHADER: [ID %i] Default shader loaded successfully", state.defaultShaderId);
 
         // Set default shader locations: attributes locations
-        State.defaultShaderLocs[LocVertexPosition] = glGetAttribLocation(State.defaultShaderId, "vertexPosition");
-        State.defaultShaderLocs[LocVertexTexCoord01] = glGetAttribLocation(State.defaultShaderId, "vertexTexCoord");
-        State.defaultShaderLocs[LocVertexColor] = glGetAttribLocation(State.defaultShaderId, "vertexColor");
+        state.defaultShaderLocs[LocVertexPosition] = glGetAttribLocation(state.defaultShaderId, "vertexPosition");
+        state.defaultShaderLocs[LocVertexTexCoord01] = glGetAttribLocation(state.defaultShaderId, "vertexTexCoord");
+        state.defaultShaderLocs[LocVertexColor] = glGetAttribLocation(state.defaultShaderId, "vertexColor");
 
         // Set default shader locations: uniform locations
-        State.defaultShaderLocs[LocMatrixMVP]  = glGetUniformLocation(State.defaultShaderId, "mvp");
-        State.defaultShaderLocs[LocColorDiffuse] = glGetUniformLocation(State.defaultShaderId, "colDiffuse");
-        State.defaultShaderLocs[LocMapDiffuse] = glGetUniformLocation(State.defaultShaderId, "texture0");
+        state.defaultShaderLocs[LocMatrixMVP]  = glGetUniformLocation(state.defaultShaderId, "mvp");
+        state.defaultShaderLocs[LocColorDiffuse] = glGetUniformLocation(state.defaultShaderId, "colDiffuse");
+        state.defaultShaderLocs[LocMapDiffuse] = glGetUniformLocation(state.defaultShaderId, "texture0");
     }
-    else TRACELOG(RL_LOG_WARNING, "SHADER: [ID %i] Failed to load default shader", State.defaultShaderId);
+    else TRACELOG(RL_LOG_WARNING, "SHADER: [ID %i] Failed to load default shader", state.defaultShaderId);
 }
 
 // Unload default shader
-// NOTE: Unloads: State.defaultShaderId, State.defaultShaderLocs
+// NOTE: Unloads: state.defaultShaderId, state.defaultShaderLocs
 void Context::UnloadShaderDefault()
 {
     glUseProgram(0);
 
-    glDetachShader(State.defaultShaderId, State.defaultVShaderId);
-    glDetachShader(State.defaultShaderId, State.defaultFShaderId);
-    glDeleteShader(State.defaultVShaderId);
-    glDeleteShader(State.defaultFShaderId);
+    glDetachShader(state.defaultShaderId, state.defaultVShaderId);
+    glDetachShader(state.defaultShaderId, state.defaultFShaderId);
+    glDeleteShader(state.defaultVShaderId);
+    glDeleteShader(state.defaultFShaderId);
 
-    glDeleteProgram(State.defaultShaderId);
+    glDeleteProgram(state.defaultShaderId);
 
-    delete[] State.defaultShaderLocs;
+    delete[] state.defaultShaderLocs;
 
-    TRACELOG(RL_LOG_INFO, "SHADER: [ID %i] Default shader unloaded successfully", State.defaultShaderId);
+    TRACELOG(RL_LOG_INFO, "SHADER: [ID %i] Default shader unloaded successfully", state.defaultShaderId);
 }
 
 #endif  // GRAPHICS_API_OPENGL_33 || GRAPHICS_API_OPENGL_ES2

@@ -14,8 +14,52 @@ namespace rlgl {
 
     class Context
     {
-      private:
-        friend class RenderBatch;
+      public:
+        struct State
+        {
+            int vertexCounter;                                                  ///< Current active render batch vertex counter (generic, used for all batches)
+            float texcoordx, texcoordy;                                         ///< Current active texture coordinate (added on glVertex*())
+            float normalx, normaly, normalz;                                    ///< Current active normal (added on glVertex*())
+            uint8_t colorr, colorg, colorb, colora;                             ///< Current active color (added on glVertex*())
+
+            enum MatrixMode currentMatrixMode;                                  ///< Current matrix mode
+            Matrix *currentMatrix;                                              ///< Current matrix pointer
+            Matrix modelview;                                                   ///< Default modelview matrix
+            Matrix projection;                                                  ///< Default projection matrix
+            Matrix transform;                                                   ///< Transform matrix to be used with rlTranslate, rlRotate, rlScale
+            bool transformRequired;                                             ///< Require transform matrix application to current draw-call vertex (if required)
+            Matrix stack[RL_MAX_MATRIX_STACK_SIZE];                             ///< Matrix stack for push/pop
+            int stackCounter;                                                   ///< Matrix stack counter
+
+            uint32_t defaultTextureId;                                          ///< Default texture used on shapes/poly drawing (required by shader)
+            uint32_t activeTextureId[RL_DEFAULT_BATCH_MAX_TEXTURE_UNITS];       ///< Active texture ids to be enabled on batch drawing (0 active by default)
+            uint32_t defaultVShaderId;                                          ///< Default vertex shader id (used by default shader program)
+            uint32_t defaultFShaderId;                                          ///< Default fragment shader id (used by default shader program)
+            uint32_t defaultShaderId;                                           ///< Default shader program id, supports vertex color and diffuse texture
+            int *defaultShaderLocs;                                             ///< Default shader locations pointer to be used on rendering
+            uint32_t currentShaderId;                                           ///< Current shader id to be used on rendering (by default, defaultShaderId)
+            const int *currentShaderLocs;                                       ///< Current shader locations pointer to be used on rendering (by default, defaultShaderLocs)
+
+            bool stereoRender;                                                  ///< Stereo rendering flag
+            Matrix projectionStereo[2];                                         ///< VR stereo rendering eyes projection matrices
+            Matrix viewOffsetStereo[2];                                         ///< VR stereo rendering eyes view offset matrices
+
+            // Blending variables
+            BlendMode currentBlendMode;                                         ///< Blending mode active
+            int glBlendSrcFactor;                                               ///< Blending source factor
+            int glBlendDstFactor;                                               ///< Blending destination factor
+            int glBlendEquation;                                                ///< Blending equation
+            int glBlendSrcFactorRGB;                                            ///< Blending source RGB factor
+            int glBlendDestFactorRGB;                                           ///< Blending destination RGB factor
+            int glBlendSrcFactorAlpha;                                          ///< Blending source alpha factor
+            int glBlendDestFactorAlpha;                                         ///< Blending destination alpha factor
+            int glBlendEquationRGB;                                             ///< Blending equation for RGB
+            int glBlendEquationAlpha;                                           ///< Blending equation for alpha
+            bool glCustomBlendModeModified;                                     ///< Custom blending factor and equation modification status
+
+            int framebufferWidth;                                               ///< Current framebuffer width
+            int framebufferHeight;                                              ///< Current framebuffer height
+        };
 
       public:
         /**
@@ -664,7 +708,7 @@ namespace rlgl {
          *
          * @return The current line drawing width.
          */
-        float GetLineWidth();
+        float GetLineWidth() const;
 
         /**
          * @brief Enable anti-aliasing for lines.
@@ -792,7 +836,7 @@ namespace rlgl {
          *
          * @return The width of the default framebuffer.
          */
-        int GetFramebufferWidth();
+        int GetFramebufferWidth() const;
 
         /**
          * @brief Get the default framebuffer height.
@@ -801,7 +845,7 @@ namespace rlgl {
          *
          * @return The height of the default framebuffer.
          */
-        int GetFramebufferHeight();
+        int GetFramebufferHeight() const;
 
         /**
          * @brief Get the default texture ID.
@@ -810,7 +854,7 @@ namespace rlgl {
          *
          * @return The ID of the default texture.
          */
-        uint32_t GetTextureIdDefault();
+        uint32_t GetTextureIdDefault() const;
 
         /**
          * @brief Get the default shader ID.
@@ -819,7 +863,7 @@ namespace rlgl {
          *
          * @return The ID of the default shader.
          */
-        uint32_t GetShaderIdDefault();
+        uint32_t GetShaderIdDefault() const;
 
         /**
          * @brief Get the default shader locations.
@@ -828,7 +872,7 @@ namespace rlgl {
          *
          * @return A pointer to the default shader locations array.
          */
-        int *GetShaderLocsDefault();
+        const int *GetShaderLocsDefault() const;
 
         /**
          * @brief Draw render batch data.
@@ -1100,17 +1144,6 @@ namespace rlgl {
         void UpdateTexture(uint32_t id, int offsetX, int offsetY, int width, int height, PixelFormat format, const void *data);
 
         /**
-         * @brief Get the name of a pixel format as a string.
-         *
-         * This function returns the name of a pixel format as a string for the specified format.
-         *
-         * @param format The pixel format to get the name for.
-         *
-         * @return A string representing the pixel format.
-         */
-        const char *GetPixelFormatName(PixelFormat format);
-
-        /**
          * @brief Unload a texture from GPU memory.
          *
          * This function unloads a texture with the specified ID from GPU memory.
@@ -1267,7 +1300,7 @@ namespace rlgl {
          *
          * @return The location of the uniform variable or -1 if not found.
          */
-        int GetLocationUniform(uint32_t shaderId, const std::string& uniformName);
+        int GetLocationUniform(uint32_t shaderId, const std::string& uniformName) const;
 
         /**
          * @brief Get the location of an attribute variable in a shader program.
@@ -1279,7 +1312,7 @@ namespace rlgl {
          *
          * @return The location of the attribute variable or -1 if not found.
          */
-        int GetLocationAttrib(uint32_t shaderId, const std::string& attribName);
+        int GetLocationAttrib(uint32_t shaderId, const std::string& attribName) const;
 
         /**
          * @brief Set a shader uniform variable with a specific value.
@@ -1321,7 +1354,7 @@ namespace rlgl {
          * @param id The ID of the shader program to activate.
          * @param locs An array of shader locations to bind with the shader program.
          */
-        void SetShader(uint32_t id, int *locs);
+        void SetShader(uint32_t id, const int *locs);
 
         /* Compute shader management */
 
@@ -1424,7 +1457,7 @@ namespace rlgl {
          * @param id The ID of the SSBO.
          * @return The size of the SSBO in bytes.
          */
-        uint32_t GetShaderBufferSize(uint32_t id);
+        uint32_t GetShaderBufferSize(uint32_t id) const;
 
         /* Buffer management */
 
@@ -1449,7 +1482,7 @@ namespace rlgl {
          *
          * @return The internal modelview matrix.
          */
-        Matrix GetMatrixModelview();
+        Matrix GetMatrixModelview() const;
 
         /**
          * @brief Get the internal projection matrix.
@@ -1458,7 +1491,7 @@ namespace rlgl {
          *
          * @return The internal projection matrix.
          */
-        Matrix GetMatrixProjection();
+        Matrix GetMatrixProjection() const;
 
         /**
          * @brief Get the internal accumulated transform matrix.
@@ -1467,7 +1500,7 @@ namespace rlgl {
          *
          * @return The internal accumulated transform matrix.
          */
-        Matrix GetMatrixTransform();
+        Matrix GetMatrixTransform() const;
 
         /**
          * @brief Get the internal projection matrix for stereo rendering.
@@ -1477,7 +1510,7 @@ namespace rlgl {
          * @param eye The selected eye for stereo rendering (0 for the right eye, 1 for the left eye).
          * @return The internal projection matrix for stereo rendering.
          */
-        Matrix GetMatrixProjectionStereo(int eye);
+        Matrix GetMatrixProjectionStereo(int eye) const;
 
         /**
          * @brief Get the internal view offset matrix for stereo rendering.
@@ -1487,7 +1520,7 @@ namespace rlgl {
          * @param eye The selected eye for stereo rendering (0 for the right eye, 1 for the left eye).
          * @return The internal view offset matrix for stereo rendering.
          */
-        Matrix GetMatrixViewOffsetStereo(int eye);
+        Matrix GetMatrixViewOffsetStereo(int eye) const;
 
         /**
          * @brief Set a custom projection matrix.
@@ -1552,54 +1585,24 @@ namespace rlgl {
 #     endif  // GRAPHICS_API_OPENGL_33 || GRAPHICS_API_OPENGL_ES2
 
       private:
-        RenderBatch *currentBatch;                                              ///< Pointer to the current render batch
-        std::unique_ptr<RenderBatch> defaultBatch;                              ///< Default internal render batch
+        State state;                                    ///< Renderer state
+        RenderBatch *currentBatch;                      ///< Pointer to the current render batch
+        std::unique_ptr<RenderBatch> defaultBatch;      ///< Default internal render batch
 
-        struct {
-            int vertexCounter;                                                  ///< Current active render batch vertex counter (generic, used for all batches)
-            float texcoordx, texcoordy;                                         ///< Current active texture coordinate (added on glVertex*())
-            float normalx, normaly, normalz;                                    ///< Current active normal (added on glVertex*())
-            uint8_t colorr, colorg, colorb, colora;                             ///< Current active color (added on glVertex*())
-
-            enum MatrixMode currentMatrixMode;                                  ///< Current matrix mode
-            Matrix *currentMatrix;                                              ///< Current matrix pointer
-            Matrix modelview;                                                   ///< Default modelview matrix
-            Matrix projection;                                                  ///< Default projection matrix
-            Matrix transform;                                                   ///< Transform matrix to be used with rlTranslate, rlRotate, rlScale
-            bool transformRequired;                                             ///< Require transform matrix application to current draw-call vertex (if required)
-            Matrix stack[RL_MAX_MATRIX_STACK_SIZE];                             ///< Matrix stack for push/pop
-            int stackCounter;                                                   ///< Matrix stack counter
-
-            uint32_t defaultTextureId;                                          ///< Default texture used on shapes/poly drawing (required by shader)
-            uint32_t activeTextureId[RL_DEFAULT_BATCH_MAX_TEXTURE_UNITS];       ///< Active texture ids to be enabled on batch drawing (0 active by default)
-            uint32_t defaultVShaderId;                                          ///< Default vertex shader id (used by default shader program)
-            uint32_t defaultFShaderId;                                          ///< Default fragment shader id (used by default shader program)
-            uint32_t defaultShaderId;                                           ///< Default shader program id, supports vertex color and diffuse texture
-            int *defaultShaderLocs;                                             ///< Default shader locations pointer to be used on rendering
-            uint32_t currentShaderId;                                           ///< Current shader id to be used on rendering (by default, defaultShaderId)
-            int *currentShaderLocs;                                             ///< Current shader locations pointer to be used on rendering (by default, defaultShaderLocs)
-
-            bool stereoRender;                                                  ///< Stereo rendering flag
-            Matrix projectionStereo[2];                                         ///< VR stereo rendering eyes projection matrices
-            Matrix viewOffsetStereo[2];                                         ///< VR stereo rendering eyes view offset matrices
-
-            // Blending variables
-            BlendMode currentBlendMode;                                         ///< Blending mode active
-            int glBlendSrcFactor;                                               ///< Blending source factor
-            int glBlendDstFactor;                                               ///< Blending destination factor
-            int glBlendEquation;                                                ///< Blending equation
-            int glBlendSrcFactorRGB;                                            ///< Blending source RGB factor
-            int glBlendDestFactorRGB;                                           ///< Blending destination RGB factor
-            int glBlendSrcFactorAlpha;                                          ///< Blending source alpha factor
-            int glBlendDestFactorAlpha;                                         ///< Blending destination alpha factor
-            int glBlendEquationRGB;                                             ///< Blending equation for RGB
-            int glBlendEquationAlpha;                                           ///< Blending equation for alpha
-            bool glCustomBlendModeModified;                                     ///< Custom blending factor and equation modification status
-
-            int framebufferWidth;                                               ///< Current framebuffer width
-            int framebufferHeight;                                              ///< Current framebuffer height
-
-        } State; ///< Renderer state
+      public:
+        /**
+         * @brief Retrieves a constant reference to the internal state of the RLGL context.
+         *
+         * This function allows access to the internal state of the RLGL context by providing
+         * a constant reference. The state is not modified by this operation, making it a
+         * read-only access method.
+         *
+         * @return A constant reference to the internal state of the RLGL context.
+         */
+        inline const State& GetState() const
+        {
+            return state;
+        }
     };
 
 }

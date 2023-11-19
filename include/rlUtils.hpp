@@ -5,7 +5,9 @@
 
 namespace rlgl {
 
-    GlVersion GetVersion();                                                                                          // Get current OpenGL version
+    GlVersion GetVersion();  
+
+    const char *GetPixelFormatName(PixelFormat format);                                                                                        // Get current OpenGL version
     int GetPixelDataSize(int width, int height, PixelFormat format);                                                 // Get pixel data size in bytes (image or texture)
     void GetGlTextureFormats(PixelFormat format, uint32_t *glInternalFormat, uint32_t *glFormat, uint32_t *glType);  // Get OpenGL internal formats
 

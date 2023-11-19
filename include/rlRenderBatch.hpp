@@ -31,11 +31,8 @@ namespace rlgl {
 
     struct RenderBatch
     {
-      private:
-        friend class Context;
-
       public:
-        RenderBatch(const class Context* rlCtx, int numBuffers, int bufferElements);
+        RenderBatch(const class Context& rlCtx, int numBuffers, int bufferElements);
         ~RenderBatch();
 
         RenderBatch(const RenderBatch&) = delete;
@@ -54,8 +51,32 @@ namespace rlgl {
             return &draws[drawCounter - 1];
         }
 
-      private:
-        void Draw(class Context* rlCtx);
+        // WARNING: Always called 'Context::CheckRenderBatchLimit()' before calling this function
+        // NOTE: This problem should change in the future
+        inline DrawCall* NewDrawCall()
+        {
+            return &draws[drawCounter++];
+        }
+
+        // NOTE: Temporary function
+        inline int GetDrawCounter() const
+        {
+            return drawCounter;
+        }
+
+        // NOTE: Temporary function
+        inline float GetCurrentDepth() const
+        {
+            return currentDepth;
+        }
+
+        // NOTE: Temporary function
+        inline void IncrementCurrentDepth(float depth)
+        {
+            currentDepth += depth;
+        }
+
+        void Draw(struct Context& rlCtx);
 
       private:
         int bufferCount;                ///< Number of vertex buffers (multi-buffering support)
