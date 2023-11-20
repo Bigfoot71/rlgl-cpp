@@ -28,7 +28,7 @@ namespace rlgl {
 
         VertexBuffer() = default;
 
-        VertexBuffer(const int* shaderLocs, int bufferElements);
+        VertexBuffer(const int *shaderLocs, int bufferElements);
         ~VertexBuffer();
 
         VertexBuffer(const VertexBuffer&) = delete;
@@ -36,6 +36,63 @@ namespace rlgl {
 
         VertexBuffer(VertexBuffer&& other) noexcept;
         VertexBuffer& operator=(VertexBuffer&& other) noexcept;
+
+        /**
+         * @brief Updates the vertex data in the Vertex Buffer Object (VBO).
+         *
+         * This function is responsible for updating the vertex data in the VBO associated
+         * with the VertexBuffer instance. It assumes that the vertex data is organized
+         * into three main buffers: vertex positions, texture coordinates, and colors.
+         *
+         * @param vertexCounter The number of vertices to update in the VBO.
+         *
+         * The function performs the following steps:
+         * 1. Activates the Vertex Array Object (VAO) if supported.
+         * 2. Updates the vertex positions buffer in the VBO.
+         * 3. Updates the texture coordinates buffer in the VBO.
+         * 4. Updates the colors buffer in the VBO.
+         * 5. Unbinds the current VAO if supported.
+         *
+         * Note: This function assumes that OpenGL is being used, and it should be
+         * called within a valid OpenGL rendering context.
+         *
+         * @see VertexBuffer
+         * @see GetExtensions()
+         * @see glBindVertexArray
+         * @see glBindBuffer
+         * @see glBufferSubData
+         * @see glVertexAttribPointer
+         * @see glEnableVertexAttribArray
+         */
+        void Update(int vertexCounter) const;
+
+        /**
+         * @brief Binds the Vertex Buffer Object (VBO) and Vertex Array Object (VAO) for rendering.
+         *
+         * This function is responsible for binding the VBO and VAO associated with the
+         * VertexBuffer instance, setting up vertex attribute pointers for position, texture
+         * coordinates, and colors. If VAO is supported, it directly binds the VAO; otherwise,
+         * it manually configures the vertex attribute pointers and element array buffer.
+         *
+         * @param currentShaderLocs An array of shader locations for vertex attributes.
+         *                          The order should match the shader's attribute layout.
+         *
+         * The function performs the following steps:
+         * 1. Binds the VAO directly if supported.
+         * 2. Manually configures and binds vertex attribute pointers for position, texcoord, and color.
+         * 3. Binds the element array buffer for indexed rendering.
+         *
+         * Note: This function assumes that OpenGL is being used, and it should be called
+         * within a valid OpenGL rendering context.
+         *
+         * @see VertexBuffer
+         * @see GetExtensions()
+         * @see glBindVertexArray
+         * @see glBindBuffer
+         * @see glVertexAttribPointer
+         * @see glEnableVertexAttribArray
+         */
+        void Bind(const int *currentShaderLocs) const;
     };
 
 }

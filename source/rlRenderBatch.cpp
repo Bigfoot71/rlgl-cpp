@@ -39,7 +39,7 @@ void DrawCall::Render(int& vertexOffset)
 /* RENDER BATCH IMPLEMENTATION */
 
 RenderBatch::RenderBatch(const Context& rlCtx, int numBuffers, int bufferElements, int drawCallsLimit)
-: bufferCount(numBuffers), drawQueueLimit(drawCallsLimit), currentDepth(-1.0f)
+: drawQueueLimit(drawCallsLimit), currentDepth(-1.0f)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
 
@@ -48,11 +48,11 @@ RenderBatch::RenderBatch(const Context& rlCtx, int numBuffers, int bufferElement
     // Initialize CPU (RAM) vertex buffers (position, texcoord, color data and indexes)
     // And upload to GPU (VRAM) vertex data and initialize VAOs/VBOs
     //--------------------------------------------------------------------------------------------
-    vertexBuffer = new VertexBuffer[numBuffers];
+    vertexBuffer.reserve(numBuffers);
 
     for (int i = 0; i < numBuffers; i++)
     {
-        vertexBuffer[i] = VertexBuffer(rlState.currentShaderLocs, bufferElements);
+        vertexBuffer.emplace_back(rlState.currentShaderLocs, bufferElements);
     }
 
     TRACELOG(TraceLogLevel::Info, "RLGL: Vertex buffers loaded successfully in RAM (CPU) and VRAM (GPU).");
@@ -75,32 +75,24 @@ RenderBatch::~RenderBatch()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    delete[] vertexBuffer;
-
 #endif
 }
 
 RenderBatch::RenderBatch(RenderBatch&& other) noexcept
-: bufferCount(other.bufferCount)
-, currentBuffer(other.currentBuffer)
-, vertexBuffer(other.vertexBuffer)
+: currentBuffer(other.currentBuffer)
+, vertexBuffer(std::move(other.vertexBuffer))
 , drawQueue(std::move(other.drawQueue))
 , currentDepth(other.currentDepth)
-{
-    other.vertexBuffer = nullptr;
-}
+{ }
 
 RenderBatch& RenderBatch::operator=(RenderBatch&& other) noexcept
 {
     if (this != &other)
     {
-        bufferCount = other.bufferCount;
         currentBuffer = other.currentBuffer;
-        vertexBuffer = other.vertexBuffer;
+        vertexBuffer = std::move(other.vertexBuffer);
         drawQueue = std::move(other.drawQueue);
         currentDepth = other.currentDepth;
-
-        other.vertexBuffer = nullptr;
     }
     return *this;
 }
@@ -116,26 +108,7 @@ void RenderBatch::Draw(Context& rlCtx)
     //------------------------------------------------------------------------------------------------------------
     // NOTE: If there is not vertex data, buffers doesn't need to be updated (vertexCount > 0)
     // TODO: If no data changed on the CPU arrays --> No need to re-update GPU arrays (use a change detector flag?)
-    if (rlState.vertexCounter > 0)
-    {
-        // Activate elements VAO
-        if (GetExtensions().vao) glBindVertexArray(curBuffer.vaoId);
-
-        // Vertex positions buffer
-        glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[0]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, rlState.vertexCounter*3*sizeof(float), curBuffer.vertices);
-
-        // Texture coordinates buffer
-        glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[1]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, rlState.vertexCounter*2*sizeof(float), curBuffer.texcoords);
-
-        // Colors buffer
-        glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[2]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, rlState.vertexCounter*4*sizeof(unsigned char), curBuffer.colors);
-
-        // Unbind the current VAO
-        if (GetExtensions().vao) glBindVertexArray(0);
-    }
+    if (rlState.vertexCounter > 0) curBuffer.Update(rlState.vertexCounter);
     //------------------------------------------------------------------------------------------------------------
 
     // Draw batch vertex buffers (considering VR stereo if required)
@@ -165,29 +138,8 @@ void RenderBatch::Draw(Context& rlCtx)
             glUniformMatrix4fv(rlState.currentShaderLocs[LocMatrixMVP], 1, false,
                 (rlState.modelview * rlState.projection).m); // MVP
 
-            if (GetExtensions().vao)
-            {
-                glBindVertexArray(curBuffer.vaoId);
-            }
-            else
-            {
-                // Bind vertex attrib: position (shader-location = 0)
-                glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[0]);
-                glVertexAttribPointer(rlState.currentShaderLocs[LocVertexPosition], 3, GL_FLOAT, 0, 0, 0);
-                glEnableVertexAttribArray(rlState.currentShaderLocs[LocVertexPosition]);
-
-                // Bind vertex attrib: texcoord (shader-location = 1)
-                glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[1]);
-                glVertexAttribPointer(rlState.currentShaderLocs[LocVertexTexCoord01], 2, GL_FLOAT, 0, 0, 0);
-                glEnableVertexAttribArray(rlState.currentShaderLocs[LocVertexTexCoord01]);
-
-                // Bind vertex attrib: color (shader-location = 3)
-                glBindBuffer(GL_ARRAY_BUFFER, curBuffer.vboId[2]);
-                glVertexAttribPointer(rlState.currentShaderLocs[LocVertexColor], 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);
-                glEnableVertexAttribArray(rlState.currentShaderLocs[LocVertexColor]);
-
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, curBuffer.vboId[3]);
-            }
+            // Binds VertexBuffer (position, texcoords, colors)
+            curBuffer.Bind(rlState.currentShaderLocs);
 
             // Setup some default shader values
             glUniform4f(rlState.currentShaderLocs[LocColorDiffuse], 1.0f, 1.0f, 1.0f, 1.0f);
@@ -229,10 +181,7 @@ void RenderBatch::Draw(Context& rlCtx)
     }
 
     // Restore viewport to default measures
-    if (eyeCount == 2)
-    {
-        rlCtx.Viewport(0, 0, rlState.framebufferWidth, rlState.framebufferHeight);
-    }
+    if (eyeCount == 2) rlCtx.Viewport(0, 0, rlState.framebufferWidth, rlState.framebufferHeight);
     //------------------------------------------------------------------------------------------------------------
 
     // Reset depth for next draw
@@ -243,13 +192,10 @@ void RenderBatch::Draw(Context& rlCtx)
     rlCtx.SetMatrixModelview(matModelView);
 
     // If all drawCalls have been dequeued, we are resetting one
-    if (drawQueue.size() == 0)
-    {
-        drawQueue.push(DrawCall(rlCtx.GetTextureIdDefault()));
-    }
+    if (drawQueue.size() == 0) drawQueue.push(DrawCall(rlCtx.GetTextureIdDefault()));
 
     // Change to next buffer in the list (in case of multi-buffering)
-    if ((++currentBuffer) >= bufferCount) currentBuffer = 0;
+    if ((++currentBuffer) >= vertexBuffer.size()) currentBuffer = 0;
 
 #endif
 }

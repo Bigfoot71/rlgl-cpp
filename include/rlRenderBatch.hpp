@@ -100,13 +100,12 @@ namespace rlgl {
         void Draw(struct Context& rlCtx);
 
       private:
-        int bufferCount;                ///< Number of vertex buffers (multi-buffering support)
-        int currentBuffer;              ///< Current buffer tracking in case of multi-buffering
-        VertexBuffer *vertexBuffer;     ///< Dynamic buffer(s) for vertex data
+        std::vector<VertexBuffer> vertexBuffer;     ///< Dynamic buffer(s) for vertex data
+        int currentBuffer;                          ///< Current buffer tracking in case of multi-buffering
 
-        std::queue<DrawCall> drawQueue; ///< Draw calls queue, depends on textureId
-        int drawQueueLimit;             ///< Limit draw calls to the queue
-        float currentDepth;             ///< Current depth value for next draw
+        std::queue<DrawCall> drawQueue;             ///< Draw calls queue, depends on textureId
+        int drawQueueLimit;                         ///< Limit draw calls to the queue
+        float currentDepth;                         ///< Current depth value for next draw
     };
 
 }

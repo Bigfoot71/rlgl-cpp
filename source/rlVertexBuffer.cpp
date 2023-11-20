@@ -6,7 +6,7 @@
 
 using namespace rlgl;
 
-VertexBuffer::VertexBuffer(const int* shaderLocs, int bufferElements) : elementCount(bufferElements)
+VertexBuffer::VertexBuffer(const int *shaderLocs, int bufferElements) : elementCount(bufferElements)
 {
     vertices = new float[bufferElements*3*4]{};     ///< 3 float by vertex, 4 vertex by quad
     texcoords = new float[bufferElements*2*4]{};    ///< 2 float by texcoord, 4 texcoord by quad
@@ -151,4 +151,51 @@ VertexBuffer& VertexBuffer::operator=(VertexBuffer&& other) noexcept
         std::fill(other.vboId, other.vboId + 4, 0);
     }
     return *this;
+}
+
+void VertexBuffer::Update(int vertexCounter) const
+{
+    // Activate elements VAO
+    if (GetExtensions().vao) glBindVertexArray(vaoId);
+
+    // Vertex positions buffer
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCounter*3*sizeof(float), vertices);
+
+    // Texture coordinates buffer
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCounter*2*sizeof(float), texcoords);
+
+    // Colors buffer
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[2]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCounter*4*sizeof(unsigned char), colors);
+
+    // Unbind the current VAO
+    if (GetExtensions().vao) glBindVertexArray(0);
+}
+
+void VertexBuffer::Bind(const int *currentShaderLocs) const
+{
+    if (GetExtensions().vao)
+    {
+        glBindVertexArray(vaoId);
+        return;
+    }
+
+    // Bind vertex attrib: position (shader-location = 0)
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[0]);
+    glVertexAttribPointer(currentShaderLocs[LocVertexPosition], 3, GL_FLOAT, 0, 0, 0);
+    glEnableVertexAttribArray(currentShaderLocs[LocVertexPosition]);
+
+    // Bind vertex attrib: texcoord (shader-location = 1)
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);
+    glVertexAttribPointer(currentShaderLocs[LocVertexTexCoord01], 2, GL_FLOAT, 0, 0, 0);
+    glEnableVertexAttribArray(currentShaderLocs[LocVertexTexCoord01]);
+
+    // Bind vertex attrib: color (shader-location = 3)
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[2]);
+    glVertexAttribPointer(currentShaderLocs[LocVertexColor], 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);
+    glEnableVertexAttribArray(currentShaderLocs[LocVertexColor]);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId[3]);
 }
