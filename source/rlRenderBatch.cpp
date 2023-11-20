@@ -4,12 +4,42 @@
 #include "rlGLExt.hpp"
 #include "rlgl.hpp"
 
-#include <algorithm>
-
 using namespace rlgl;
 
-RenderBatch::RenderBatch(const Context& rlCtx, int numBuffers, int bufferElements)
-: bufferCount(numBuffers), drawCounter(1), currentDepth(-1.0f)
+/* DRAW CALL IMPLEMENTATION */
+
+void DrawCall::Render(int& vertexOffset)
+{
+    // Bind current draw call texture, activated as GL_TEXTURE0 and Bound to sampler2D texture0 by default
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    if (mode == DrawMode::Lines || mode == DrawMode::Triangles)
+    {
+        glDrawArrays(static_cast<int>(mode), vertexOffset, vertexCount);
+    }
+    else
+    {
+#       if defined(GRAPHICS_API_OPENGL_33)
+            // We need to define the number of indices to be processed: elementCount*6
+            // NOTE: The final parameter tells the GPU the offset in bytes from the
+            // start of the index buffer to the location of the first index to process
+            glDrawElements(GL_TRIANGLES, vertexCount/4*6, GL_UNSIGNED_INT,
+                reinterpret_cast<const void*>(vertexOffset/4*6*sizeof(GLuint)));
+#       endif
+
+#       if defined(GRAPHICS_API_OPENGL_ES2)
+            glDrawElements(GL_TRIANGLES, draws[i].vertexCount/4*6, GL_UNSIGNED_SHORT,
+                reinterpret_cast<const void*>(vertexOffset/4*6*sizeof(GLushort)));
+#       endif
+    }
+
+    vertexOffset += (vertexCount + vertexAlignment);
+}
+
+/* RENDER BATCH IMPLEMENTATION */
+
+RenderBatch::RenderBatch(const Context& rlCtx, int numBuffers, int bufferElements, int drawCallsLimit)
+: bufferCount(numBuffers), drawQueueLimit(drawCallsLimit), currentDepth(-1.0f)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
 
@@ -31,23 +61,9 @@ RenderBatch::RenderBatch(const Context& rlCtx, int numBuffers, int bufferElement
     if (GetExtensions().vao) glBindVertexArray(0);
     //--------------------------------------------------------------------------------------------
 
+    // Initializes the first DrawCall in the draw call queue
+    drawQueue.push(DrawCall(rlCtx.GetTextureIdDefault()));
 
-    // Init draw calls tracking system
-    //--------------------------------------------------------------------------------------------
-    draws = new DrawCall[RL_DEFAULT_BATCH_DRAWCALLS];
-
-    for (int i = 0; i < RL_DEFAULT_BATCH_DRAWCALLS; i++)
-    {
-        draws[i].mode = DrawMode::Quads;
-        draws[i].vertexCount = 0;
-        draws[i].vertexAlignment = 0;
-        //draws[i].vaoId = 0;
-        //draws[i].shaderId = 0;
-        draws[i].textureId = rlState.defaultTextureId;
-        //draws[i].RLGL.State.projection = rlMatrixIdentity();
-        //draws[i].RLGL.State.modelview = rlMatrixIdentity();
-    }
-    //--------------------------------------------------------------------------------------------
 #endif
 }
 
@@ -59,22 +75,19 @@ RenderBatch::~RenderBatch()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    delete[] draws;
     delete[] vertexBuffer;
 
 #endif
 }
 
 RenderBatch::RenderBatch(RenderBatch&& other) noexcept
-  : bufferCount(other.bufferCount),
-    currentBuffer(other.currentBuffer),
-    vertexBuffer(other.vertexBuffer),
-    draws(other.draws),
-    drawCounter(other.drawCounter),
-    currentDepth(other.currentDepth)
+: bufferCount(other.bufferCount)
+, currentBuffer(other.currentBuffer)
+, vertexBuffer(other.vertexBuffer)
+, drawQueue(std::move(other.drawQueue))
+, currentDepth(other.currentDepth)
 {
     other.vertexBuffer = nullptr;
-    other.draws = nullptr;
 }
 
 RenderBatch& RenderBatch::operator=(RenderBatch&& other) noexcept
@@ -84,12 +97,10 @@ RenderBatch& RenderBatch::operator=(RenderBatch&& other) noexcept
         bufferCount = other.bufferCount;
         currentBuffer = other.currentBuffer;
         vertexBuffer = other.vertexBuffer;
-        draws = other.draws;
-        drawCounter = other.drawCounter;
+        drawQueue = std::move(other.drawQueue);
         currentDepth = other.currentDepth;
 
         other.vertexBuffer = nullptr;
-        other.draws = nullptr;
     }
     return *this;
 }
@@ -97,6 +108,7 @@ RenderBatch& RenderBatch::operator=(RenderBatch&& other) noexcept
 void RenderBatch::Draw(Context& rlCtx)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
+
     const VertexBuffer &curBuffer = vertexBuffer[currentBuffer];
     const Context::State &rlState = rlCtx.GetState();
 
@@ -196,32 +208,10 @@ void RenderBatch::Draw(Context& rlCtx)
             // NOTE: Batch system accumulates calls by texture0 changes, additional textures are enabled for all the draw calls
             glActiveTexture(GL_TEXTURE0);
 
-            for (int i = 0, vertexOffset = 0; i < drawCounter; i++)
+            for (int vertexOffset = 0; !drawQueue.empty();)
             {
-                // Bind current draw call texture, activated as GL_TEXTURE0 and Bound to sampler2D texture0 by default
-                glBindTexture(GL_TEXTURE_2D, draws[i].textureId);
-
-                if ((draws[i].mode == DrawMode::Lines) || (draws[i].mode == DrawMode::Triangles))
-                {
-                    glDrawArrays(static_cast<int>(draws[i].mode), vertexOffset, draws[i].vertexCount);
-                }
-                else
-                {
-#                   if defined(GRAPHICS_API_OPENGL_33)
-                        // We need to define the number of indices to be processed: elementCount*6
-                        // NOTE: The final parameter tells the GPU the offset in bytes from the
-                        // start of the index buffer to the location of the first index to process
-                        glDrawElements(GL_TRIANGLES, draws[i].vertexCount/4*6, GL_UNSIGNED_INT,
-                            reinterpret_cast<const void*>(vertexOffset/4*6*sizeof(GLuint)));
-#                   endif
-
-#                   if defined(GRAPHICS_API_OPENGL_ES2)
-                        glDrawElements(GL_TRIANGLES, draws[i].vertexCount/4*6, GL_UNSIGNED_SHORT,
-                            reinterpret_cast<const void*>(vertexOffset/4*6*sizeof(GLushort)));
-#                   endif
-                }
-
-                vertexOffset += (draws[i].vertexCount + draws[i].vertexAlignment);
+                drawQueue.front().Render(vertexOffset);
+                if (eye == eyeCount - 1) drawQueue.pop();
             }
 
             if (!GetExtensions().vao)
@@ -239,11 +229,12 @@ void RenderBatch::Draw(Context& rlCtx)
     }
 
     // Restore viewport to default measures
-    if (eyeCount == 2) rlCtx.Viewport(0, 0, rlState.framebufferWidth, rlState.framebufferHeight);
+    if (eyeCount == 2)
+    {
+        rlCtx.Viewport(0, 0, rlState.framebufferWidth, rlState.framebufferHeight);
+    }
     //------------------------------------------------------------------------------------------------------------
 
-    // Reset batch buffers
-    //------------------------------------------------------------------------------------------------------------
     // Reset depth for next draw
     currentDepth = -1.0f;
 
@@ -251,20 +242,14 @@ void RenderBatch::Draw(Context& rlCtx)
     rlCtx.SetMatrixProjection(matProjection);
     rlCtx.SetMatrixModelview(matModelView);
 
-    // Reset rlCtx.currentBatch->draws array
-    for (int i = 0; i < RL_DEFAULT_BATCH_DRAWCALLS; i++)
+    // If all drawCalls have been dequeued, we are resetting one
+    if (drawQueue.size() == 0)
     {
-        draws[i].mode = DrawMode::Quads;
-        draws[i].vertexCount = 0;
-        draws[i].textureId = rlCtx.GetTextureIdDefault();
+        drawQueue.push(DrawCall(rlCtx.GetTextureIdDefault()));
     }
 
-    // Reset draws counter to one draw for the batch
-    drawCounter = 1;
-    //------------------------------------------------------------------------------------------------------------
-
     // Change to next buffer in the list (in case of multi-buffering)
-    currentBuffer++;
-    if (currentBuffer >= bufferCount) currentBuffer = 0;
+    if ((++currentBuffer) >= bufferCount) currentBuffer = 0;
+
 #endif
 }

@@ -61,7 +61,7 @@ Context::Context(int width, int height, void *extLoader(const char *))
         state.currentShaderLocs = state.defaultShaderLocs;
 
         // Init default vertex arrays buffers
-        defaultBatch = std::make_unique<RenderBatch>(*this, RL_DEFAULT_BATCH_BUFFERS, RL_DEFAULT_BATCH_BUFFER_ELEMENTS);
+        defaultBatch = std::make_unique<RenderBatch>(*this, RL_DEFAULT_BATCH_BUFFERS, RL_DEFAULT_BATCH_BUFFER_ELEMENTS, RL_DEFAULT_BATCH_DRAWCALLS);
         currentBatch = defaultBatch.get();
 
         // Init vertexCounter
@@ -509,11 +509,11 @@ void Context::Begin(DrawMode mode)
             if (!CheckRenderBatchLimit(drawCall->vertexAlignment))
             {
                 state.vertexCounter += drawCall->vertexAlignment;
-                drawCall = currentBatch->NewDrawCall();
+                drawCall = currentBatch->NewDrawCall(GetTextureIdDefault());
             }
         }
 
-        if (currentBatch->GetDrawCounter() >= RL_DEFAULT_BATCH_DRAWCALLS)
+        if (currentBatch->GetDrawCallCounter() >= currentBatch->GetDrawCallLimit())
         {
             DrawRenderBatch(currentBatch);
             drawCall = currentBatch->GetLastDrawCall();
@@ -707,11 +707,11 @@ void Context::SetTexture(uint32_t id)
         if (!CheckRenderBatchLimit(drawCall->vertexAlignment))
         {
             state.vertexCounter += drawCall->vertexAlignment;
-            drawCall = currentBatch->NewDrawCall();
+            drawCall = currentBatch->NewDrawCall(GetTextureIdDefault());
         }
     }
 
-    if (currentBatch->GetDrawCounter() >= RL_DEFAULT_BATCH_DRAWCALLS)
+    if (currentBatch->GetDrawCallCounter() >= currentBatch->GetDrawCallLimit())
     {
         DrawRenderBatch(currentBatch);
 

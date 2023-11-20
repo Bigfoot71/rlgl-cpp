@@ -1,9 +1,12 @@
 #ifndef RLGL_RENDER_BATCH_HPP
 #define RLGL_RENDER_BATCH_HPP
 
-#include "./rlEnums.hpp"
-#include "./rlConfig.hpp"
 #include "./rlVertexBuffer.hpp"
+#include "./rlConfig.hpp"
+#include "./rlEnums.hpp"
+#include "rlUtils.hpp"
+#include <cstdint>
+#include <queue>
 
 namespace rlgl {
 
@@ -14,15 +17,22 @@ namespace rlgl {
 
     struct DrawCall
     {
-        DrawMode mode;              ///< Drawing mode: LINES, TRIANGLES, QUADS
-        int vertexCount;            ///< Number of vertex of the draw
-        int vertexAlignment;        ///< Number of vertex required for index alignment (LINES, TRIANGLES)
-        //unsigned int vaoId;       ///< Vertex array id to be used on the draw -> Using RLGL.currentBatch->vertexBuffer.vaoId
-        //unsigned int shaderId;    ///< Shader id to be used on the draw -> Using RLGL.currentShaderId
-        uint32_t textureId;         ///< Texture id to be used on the draw -> Use to create new draw call if changes
+        DrawMode mode               = DrawMode::Quads;      ///< Drawing mode: LINES, TRIANGLES, QUADS
+        int vertexCount             = 0;                    ///< Number of vertex of the draw
+        int vertexAlignment         = 0;                    ///< Number of vertex required for index alignment (LINES, TRIANGLES)
+        //uint32_t vaoId;           = 0;                    ///< Vertex array id to be used on the draw -> Using RLGL.currentBatch->vertexBuffer.vaoId
+        //uint32_t shaderId         = 0;                    ///< Shader id to be used on the draw -> Using RLGL.currentShaderId
+        uint32_t textureId          = 0;                    ///< Texture id to be used on the draw -> Use to create new draw call if changes
 
-        //Matrix projection;        ///< Projection matrix for this draw -> Using RLGL.projection by default
-        //Matrix modelview;         ///< Modelview matrix for this draw -> Using RLGL.modelview by default
+        //Matrix projection         = Matrix::Identity;     ///< Projection matrix for this draw -> Using RLGL.projection by default
+        //Matrix modelview          = Matrix::Identity;     ///< Modelview matrix for this draw -> Using RLGL.modelview by default
+
+        DrawCall() = default;
+
+        DrawCall(uint32_t _textureId)
+            : textureId(_textureId) { }
+
+        void Render(int& vertexOffset);
     };
 
     // Render batch management
@@ -32,7 +42,11 @@ namespace rlgl {
     struct RenderBatch
     {
       public:
-        RenderBatch(const class Context& rlCtx, int numBuffers, int bufferElements);
+        RenderBatch(const class Context& rlCtx,
+            int numBuffers = RL_DEFAULT_BATCH_BUFFERS,
+            int bufferElements = RL_DEFAULT_BATCH_BUFFER_ELEMENTS,
+            int drawCallsLimit = RL_DEFAULT_BATCH_DRAWCALLS);
+
         ~RenderBatch();
 
         RenderBatch(const RenderBatch&) = delete;
@@ -48,20 +62,27 @@ namespace rlgl {
 
         inline DrawCall* GetLastDrawCall()
         {
-            return &draws[drawCounter - 1];
+            return &drawQueue.back();
         }
 
         // WARNING: Always called 'Context::CheckRenderBatchLimit()' before calling this function
         // NOTE: This problem should change in the future
-        inline DrawCall* NewDrawCall()
+        inline DrawCall* NewDrawCall(uint32_t defaultTextureId)
         {
-            return &draws[drawCounter++];
+            drawQueue.emplace(defaultTextureId);
+            return &drawQueue.back();
         }
 
         // NOTE: Temporary function
-        inline int GetDrawCounter() const
+        inline std::size_t GetDrawCallCounter() const
         {
-            return drawCounter;
+            return drawQueue.size();
+        }
+
+        // NOTE: Temporary function
+        inline int GetDrawCallLimit() const
+        {
+            return drawQueueLimit;
         }
 
         // NOTE: Temporary function
@@ -83,8 +104,8 @@ namespace rlgl {
         int currentBuffer;              ///< Current buffer tracking in case of multi-buffering
         VertexBuffer *vertexBuffer;     ///< Dynamic buffer(s) for vertex data
 
-        DrawCall *draws;                ///< Draw calls array, depends on textureId
-        int drawCounter;                ///< Draw calls counter
+        std::queue<DrawCall> drawQueue; ///< Draw calls queue, depends on textureId
+        int drawQueueLimit;             ///< Limit draw calls to the queue
         float currentDepth;             ///< Current depth value for next draw
     };
 
