@@ -15,16 +15,15 @@ namespace rlgl {
         OpenGL_ES_30                        ///< OpenGL ES 3.0 (GLSL 300 es)
     };
 
-    enum class TraceLogLevel
+    enum LogLevel
     {
-        All,                                ///< Display all logs
-        Trace,                              ///< Trace logging, intended for internal use only
-        Debug,                              ///< Debug logging, used for internal debugging, it should be disabled on release builds
-        Info,                               ///< Info logging, used for program execution info
-        Warning,                            ///< Warning logging, used on recoverable failures
-        Error,                              ///< Error logging, used on unrecoverable failures
-        Fatal,                              ///< Fatal logging, used to abort program: exit(EXIT_FAILURE)
-        None                                ///< Disable logging
+        LogAll          = 0,                ///< Display all logs
+        LogDebug        = 1,                ///< Debug logging, used for internal debugging, it should be disabled on release builds
+        LogInfo         = 2,                ///< Info logging, used for program execution info
+        LogWarning      = 3,                ///< Warning logging, used on recoverable failures
+        LogError        = 4,                ///< Error logging, used on unrecoverable failures
+        LogFatal        = 5,                ///< Fatal logging, used to abort program: exit(EXIT_FAILURE)
+        LogNone         = 6                 ///< Disable logging
     };
 
     enum class PixelFormat

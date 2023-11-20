@@ -11,7 +11,7 @@ namespace rlgl {
       public:
         RLGLException(const std::string& _message) : message(_message) { }
 
-        inline const char* what() const noexcept override
+        const char* what() const noexcept override
         {
             return message.c_str();
         }

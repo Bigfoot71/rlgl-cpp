@@ -1599,7 +1599,7 @@ namespace rlgl {
          *
          * @return A constant reference to the internal state of the RLGL context.
          */
-        inline const State& GetState() const
+        const State& GetState() const
         {
             return state;
         }

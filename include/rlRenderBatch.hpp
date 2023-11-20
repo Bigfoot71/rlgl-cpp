@@ -55,44 +55,44 @@ namespace rlgl {
         RenderBatch(RenderBatch&& other) noexcept;
         RenderBatch& operator=(RenderBatch&& other) noexcept;
 
-        inline VertexBuffer* GetCurrentBuffer()
+        VertexBuffer* GetCurrentBuffer()
         {
             return &vertexBuffer[currentBuffer];
         }
 
-        inline DrawCall* GetLastDrawCall()
+        DrawCall* GetLastDrawCall()
         {
             return &drawQueue.back();
         }
 
         // WARNING: Always called 'Context::CheckRenderBatchLimit()' before calling this function
         // NOTE: This problem should change in the future
-        inline DrawCall* NewDrawCall(uint32_t defaultTextureId)
+        DrawCall* NewDrawCall(uint32_t defaultTextureId)
         {
             drawQueue.emplace(defaultTextureId);
             return &drawQueue.back();
         }
 
         // NOTE: Temporary function
-        inline std::size_t GetDrawCallCounter() const
+        std::size_t GetDrawCallCounter() const
         {
             return drawQueue.size();
         }
 
         // NOTE: Temporary function
-        inline int GetDrawCallLimit() const
+        int GetDrawCallLimit() const
         {
             return drawQueueLimit;
         }
 
         // NOTE: Temporary function
-        inline float GetCurrentDepth() const
+        float GetCurrentDepth() const
         {
             return currentDepth;
         }
 
         // NOTE: Temporary function
-        inline void IncrementCurrentDepth(float depth)
+        void IncrementCurrentDepth(float depth)
         {
             currentDepth += depth;
         }

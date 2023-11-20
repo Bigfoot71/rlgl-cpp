@@ -105,20 +105,15 @@ void RenderBatch::Draw(Context& rlCtx)
     const Context::State &rlState = rlCtx.GetState();
 
     // Update batch vertex buffers
-    //------------------------------------------------------------------------------------------------------------
     // NOTE: If there is not vertex data, buffers doesn't need to be updated (vertexCount > 0)
     // TODO: If no data changed on the CPU arrays --> No need to re-update GPU arrays (use a change detector flag?)
     if (rlState.vertexCounter > 0) curBuffer.Update(rlState.vertexCounter);
-    //------------------------------------------------------------------------------------------------------------
 
     // Draw batch vertex buffers (considering VR stereo if required)
-    //------------------------------------------------------------------------------------------------------------
     Matrix matProjection = rlCtx.GetMatrixProjection();
     Matrix matModelView = rlCtx.GetMatrixModelview();
 
-    int eyeCount = 1;
-    if (rlState.stereoRender) eyeCount = 2;
-
+    const int eyeCount = rlState.stereoRender ? 2 : 1;
     for (int eye = 0; eye < eyeCount; eye++)
     {
         if (eyeCount == 2)
