@@ -2199,10 +2199,10 @@ uint32_t Context::LoadVertexArray()
 }
 
 // Set vertex attribute
-void Context::SetVertexAttribute(uint32_t index, int compSize, int type, bool normalized, int stride, const void *pointer)
+void Context::SetVertexAttribute(uint32_t index, int compSize, DataType type, bool normalized, int stride, const void *pointer)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    glVertexAttribPointer(index, compSize, type, normalized, stride, pointer);
+    glVertexAttribPointer(index, compSize, static_cast<int>(type), normalized, stride, pointer);
 #endif
 }
 

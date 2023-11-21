@@ -1014,7 +1014,7 @@ namespace rlgl {
          * @param stride The stride (byte offset) between consecutive elements.
          * @param pointer A pointer to the attribute data.
          */
-        void SetVertexAttribute(uint32_t index, int compSize, int type, bool normalized, int stride, const void *pointer);
+        void SetVertexAttribute(uint32_t index, int compSize, DataType type, bool normalized, int stride, const void *pointer);
 
         /**
          * @brief Set the vertex attribute divisor.

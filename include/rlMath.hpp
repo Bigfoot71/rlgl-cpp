@@ -76,12 +76,6 @@ namespace rlgl {
         // Opérateur de soustraction pour la matrice 4x4
         Matrix operator-(const Matrix& other) const;
 
-        // Opérateur de négation pour la matrice 4x4 (inverse)
-        Matrix operator-() const
-        {
-            return this->Invert();
-        }
-
         // Opérateur de multiplication de matrice 4x4
         Matrix operator*(const Matrix& other) const;
 
