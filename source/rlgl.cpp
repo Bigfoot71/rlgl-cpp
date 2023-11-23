@@ -64,8 +64,9 @@ Context::Context(int width, int height, void *extLoader(const char *))
         defaultBatch = std::make_unique<RenderBatch>(*this, RL_DEFAULT_BATCH_BUFFERS, RL_DEFAULT_BATCH_BUFFER_ELEMENTS, RL_DEFAULT_BATCH_DRAWCALLS);
         currentBatch = defaultBatch.get();
 
-        // Init vertexCounter
+        // Init counters
         state.vertexCounter = 0;
+        state.stackCounter = 0;
 
         // Init stack matrices (emulating OpenGL 1.1)
         std::fill(state.stack, state.stack + RL_MAX_MATRIX_STACK_SIZE, Matrix::Identity());
