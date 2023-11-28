@@ -39,7 +39,7 @@ void DrawCall::Render(int& vertexOffset)
 /* RENDER BATCH IMPLEMENTATION */
 
 RenderBatch::RenderBatch(const Context& rlCtx, int numBuffers, int bufferElements, int drawCallsLimit)
-: drawQueueLimit(drawCallsLimit), currentDepth(-1.0f)
+: currentBuffer(0), drawQueueLimit(drawCallsLimit), currentDepth(-1.0f)
 {
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
 
